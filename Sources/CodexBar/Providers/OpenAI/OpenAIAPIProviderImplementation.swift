@@ -50,10 +50,13 @@ struct OpenAIAPIProviderImplementation: ProviderImplementation {
         settings: SettingsStore,
         environment: [String: String]) -> [ProviderMenuEntry]
     {
-        guard self.isAvailable(context: ProviderAvailabilityContext(
+        // Resolve like refreshes do, so a selected token account counts as a credential.
+        let resolved = ProviderRegistry.makeEnvironment(
+            base: environment,
             provider: self.id,
             settings: settings,
-            environment: environment)) else { return [] }
+            tokenOverride: nil)
+        guard OpenAILiveUsageFetcher.hasCredential(environment: resolved) else { return [] }
         return [.action(L("Live Usage"), .openOpenAILiveUsage)]
     }
 

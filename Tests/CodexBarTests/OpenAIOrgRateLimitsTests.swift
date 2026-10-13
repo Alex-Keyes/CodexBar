@@ -200,7 +200,8 @@ struct OpenAIOrgRateLimitsTests {
         ], projectCaps: nil)
         let b = try #require(snapshot.utilization(for: .model("b"), limits: limits))
         #expect(b.latestTPMPercent == 50)
-        #expect(b.peakTPMPercent == 75)
+        // The in-progress minute (150 TPM, 75%) is pending, so the peak is the complete minute.
+        #expect(b.peakTPMPercent == 50)
         #expect(b.peakRPMPercent == 50)
         #expect(snapshot.utilization(for: .allModels, limits: limits) == nil)
         #expect(snapshot.utilization(for: .model("no-limit"), limits: limits) == nil)
@@ -209,7 +210,7 @@ struct OpenAIOrgRateLimitsTests {
         #expect(row.tpmLimit == 200)
         #expect(row.rpmLimit == 8)
         #expect(row.projectCap == nil)
-        #expect(row.peakTPMPercent == 75)
+        #expect(row.peakTPMPercent == 50)
         #expect(row.latestTPMPercent == 50)
         #expect(snapshot.utilization(for: .model("a"), limits: limits)?.peakRPMPercent == nil)
     }

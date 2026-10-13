@@ -23,7 +23,8 @@ extension OpenAILiveUsageSnapshot {
                     latestTPM: summary.latestTPM,
                     peakTPM: summary.peakTPM,
                     totalTokens: summary.totalTokens,
-                    peakLimitCountedTokens: self.series(for: .model(name)).map(\.limitCountedTokens).max() ?? 0)
+                    peakLimitCountedTokens: self.series(for: .model(name)).filter { !$0.isPending }
+                        .map(\.limitCountedTokens).max() ?? 0)
             },
             windowMinutes: self.windowMinutes,
             fetchedAt: self.fetchedAt)

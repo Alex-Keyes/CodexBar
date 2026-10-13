@@ -69,13 +69,15 @@ extension OpenAILiveUsageSnapshot {
         guard case let .model(name) = filter, let limit = limits.resolve(name) else { return nil }
         let points = self.series(for: filter)
         let latest = points.first { $0.start == self.reportingFrontier }
+        let reported = points.filter { !$0.isPending }
         return .init(
             limit: limit,
             latestTPMPercent: Double(latest?.limitCountedTokens ?? 0) / Double(limit.tokensPerMinute) * 100,
-            peakTPMPercent: Double(points.map(\.limitCountedTokens).max() ?? 0) / Double(limit.tokensPerMinute) * 100,
+            peakTPMPercent: Double(reported.map(\.limitCountedTokens).max() ?? 0) / Double(limit.tokensPerMinute)
+                * 100,
             peakRPMPercent: limit.requestsPerMinute.flatMap { rpm in
                 guard rpm > 0 else { return nil }
-                return Double(self.series(for: filter).map(\.requests).max() ?? 0) / Double(rpm) * 100
+                return Double(reported.map(\.requests).max() ?? 0) / Double(rpm) * 100
             })
     }
 

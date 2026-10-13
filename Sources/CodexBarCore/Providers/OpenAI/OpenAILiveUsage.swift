@@ -174,8 +174,9 @@ public struct OpenAILiveUsageSnapshot: Sendable, Equatable {
             guard let frontier else { return false }
             return point.start <= frontier && point.start > frontier.addingTimeInterval(-5 * 60)
         }
+        // Pending minutes can hold partial data the chart hides, so peaks stop at the frontier.
         // In a tie, keep the earliest peak in the ascending grid.
-        let peak = points.max { $0.totalTokens < $1.totalTokens }
+        let peak = points.filter { !$0.isPending }.max { $0.totalTokens < $1.totalTokens }
         return Summary(
             latestTPM: latest?.totalTokens ?? 0,
             latestMinuteStart: frontier,

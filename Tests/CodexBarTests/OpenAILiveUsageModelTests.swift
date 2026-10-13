@@ -86,6 +86,16 @@ struct OpenAILiveUsageModelTests {
     }
 
     @Test
+    func `menu entry honors a selected token account like refreshes do`() {
+        let settings = testSettingsStore(
+            suiteName: "OpenAILiveUsageModelTests.tokenAccount", userDefaults: InMemoryUserDefaults())
+        let provider = OpenAIAPIProviderImplementation()
+        #expect(provider.liveUsageMenuEntries(settings: settings, environment: [:]).isEmpty)
+        settings.addTokenAccount(provider: .openai, label: "Org", token: "test-admin-key")
+        #expect(provider.liveUsageMenuEntries(settings: settings, environment: [:]).count == 1)
+    }
+
+    @Test
     func `range changes coalesce in flight and closing rejects late results`() async {
         let gate = Gate()
         let model = OpenAILiveUsageModel(environment: { [:] }, fetch: { _, minutes in

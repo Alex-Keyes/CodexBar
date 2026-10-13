@@ -75,15 +75,16 @@ struct OpenAILiveUsageTests {
         #expect(summary.latestTPM == 190)
         #expect(summary.latestMinuteStart == all[13].start)
         #expect(summary.fiveMinuteAverageTPM == 38)
-        #expect(summary.peakTPM == 500)
-        #expect(summary.peakMinuteStart == all[14].start)
+        // The in-progress minute's partial 500 tokens count toward totals but never become the peak.
+        #expect(summary.peakTPM == 190)
+        #expect(summary.peakMinuteStart == all[13].start)
         #expect(summary.totalTokens == 690)
         #expect(summary.inputTokens == 605)
         #expect(summary.cachedInputTokens == 20)
         #expect(summary.outputTokens == 85)
         #expect(summary.requests == 2)
         #expect(result.modelRows.first == .init(
-            name: "model-a", latestTPM: 160, peakTPM: 500, totalTokens: 660, requests: 2))
+            name: "model-a", latestTPM: 160, peakTPM: 160, totalTokens: 660, requests: 2))
     }
 
     @Test
@@ -192,6 +193,24 @@ struct OpenAILiveUsageTests {
         #expect(snapshot.series(for: .allModels).filter(\.isPending).map(\.start) ==
             snapshot.minutes.suffix(3).map(\.start))
         #expect(snapshot.stackedByModel().filter(\.isPending).count == 6)
+    }
+
+    @Test
+    func `peaks ignore partial minutes after the reporting frontier`() {
+        // Minute 14 is still in progress at `now`, so its partial bucket is pending.
+        let snapshot = Self.frontierSnapshot(activeMinutes: [8: ("model-a", 80), 14: ("model-a", 900)])
+        #expect(snapshot.reportingFrontier == snapshot.minutes[8].start)
+        let summary = snapshot.summary(for: .allModels)
+        #expect(summary.peakTPM == 80)
+        #expect(summary.peakMinuteStart == snapshot.minutes[8].start)
+        let limits = OpenAIOrgLimitResolver(
+            manual: [.init(model: "model-a", tokensPerMinute: 1000, requestsPerMinute: 10)],
+            projectCaps: nil)
+        let utilization = snapshot.utilization(for: .model("model-a"), limits: limits)
+        #expect(utilization?.peakTPMPercent == 8)
+        #expect(utilization?.peakRPMPercent == 10)
+        #expect(snapshot.throughput.peakTokensPerMinute == 80)
+        #expect(snapshot.throughput.models.first?.peakLimitCountedTokens == 80)
     }
 
     @Test
