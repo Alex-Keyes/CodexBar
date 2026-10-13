@@ -70,15 +70,20 @@ extension OpenAILiveUsageSnapshot {
         let points = self.series(for: filter)
         let latest = points.first { $0.start == self.reportingFrontier }
         let reported = points.filter { !$0.isPending }
-        return .init(
+        // Typed intermediates keep older Swift toolchains from timing out on type-checking.
+        let tpmLimit = Double(limit.tokensPerMinute)
+        let latestTokens: Int = latest?.limitCountedTokens ?? 0
+        let peakTokens: Int = reported.map(\.limitCountedTokens).max() ?? 0
+        let peakRequests: Int = reported.map(\.requests).max() ?? 0
+        var peakRPMPercent: Double?
+        if let rpm = limit.requestsPerMinute, rpm > 0 {
+            peakRPMPercent = Double(peakRequests) / Double(rpm) * 100
+        }
+        return OpenAIOrgLimitUtilization(
             limit: limit,
-            latestTPMPercent: Double(latest?.limitCountedTokens ?? 0) / Double(limit.tokensPerMinute) * 100,
-            peakTPMPercent: Double(reported.map(\.limitCountedTokens).max() ?? 0) / Double(limit.tokensPerMinute)
-                * 100,
-            peakRPMPercent: limit.requestsPerMinute.flatMap { rpm in
-                guard rpm > 0 else { return nil }
-                return Double(reported.map(\.requests).max() ?? 0) / Double(rpm) * 100
-            })
+            latestTPMPercent: Double(latestTokens) / tpmLimit * 100,
+            peakTPMPercent: Double(peakTokens) / tpmLimit * 100,
+            peakRPMPercent: peakRPMPercent)
     }
 
     public func modelRows(limits: OpenAIOrgLimitResolver) -> [ModelRow] {
