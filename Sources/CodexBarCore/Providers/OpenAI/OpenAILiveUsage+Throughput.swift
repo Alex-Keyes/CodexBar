@@ -27,6 +27,7 @@ extension OpenAILiveUsageSnapshot {
                         .map(\.limitCountedTokens).max() ?? 0)
             },
             windowMinutes: self.windowMinutes,
-            fetchedAt: self.fetchedAt)
+            fetchedAt: self.fetchedAt,
+            projectID: self.projectID)
     }
 }

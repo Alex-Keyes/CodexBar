@@ -183,7 +183,8 @@ struct MenuCardChartSwitchTests {
             fiveMinuteAverageTokensPerMinute: 45_000_000,
             models: [],
             windowMinutes: 60,
-            fetchedAt: Self.now)
+            fetchedAt: Self.now,
+            projectID: nil)
         let daily = OpenAIAPIUsageSnapshot(
             daily: (0..<30).map { index in
                 let start = Self.now.addingTimeInterval(Double(index - 29) * 86400)

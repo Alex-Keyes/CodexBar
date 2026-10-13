@@ -100,7 +100,8 @@ off scale. Without a manual limit it shows **Org limit not set** and a shortcut 
 shows manual org limits and peak utilization; the highest-utilization tile considers only models with manual
 limits and never combines unrelated model limits. Project-scoped usage (`OPENAI_PROJECT_ID` or `workspaceID`) is
 only one project's slice of the organization traffic those limits apply to, so the window, chart, and menu card show
-no org-limit utilization or limit tile while a project is configured.
+no org-limit utilization or limit tile for project-scoped data. Cached snapshots record their own project scope, so
+this holds even after the project setting changes but before a successful refresh.
 
 OpenAI has no organization-level limits endpoint. Per-project limits are **project caps**, not an organization
 ceiling: observed organization traffic exceeded every project's cap because traffic was spread across projects.

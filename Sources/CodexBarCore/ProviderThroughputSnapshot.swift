@@ -26,4 +26,6 @@ public struct ProviderThroughputSnapshot: Codable, Sendable, Equatable {
     public let models: [Model]
     public let windowMinutes: Int
     public let fetchedAt: Date
+    /// Project the traffic is filtered to; nil when it covers the whole account or organization.
+    public let projectID: String?
 }

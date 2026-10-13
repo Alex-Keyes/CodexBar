@@ -44,32 +44,22 @@ struct MenuCardThroughputTests {
     }
 
     @Test
-    func `project scoped usage never reports org limit utilization`() async throws {
-        let snapshot = try await OpenAIThroughputTests.mappedLive(
-            OpenAIThroughputTests.liveSource(OpenAIThroughputTests.livePayload),
-            engine: .quickJS)
-        let throughput = try #require(snapshot.throughput)
-        let settings = testSettingsStore(
-            suiteName: #function,
-            userDefaults: InMemoryUserDefaults())
-        settings.updateProviderConfig(provider: .openai) {
-            $0.modelRateLimits = [.init(model: OpenAIThroughputTests.model, tokensPerMinute: 40_000_000)]
+    func `project scoped snapshots never report org limit utilization`() throws {
+        let manual = [ProviderModelRateLimit(model: OpenAIThroughputTests.model, tokensPerMinute: 40_000_000)]
+        func presentation(projectID: String?) throws -> ProviderThroughputPresentation {
+            try OpenAIAPIProviderImplementation.throughputPresentation(
+                snapshot: OpenAIAPIProviderDescriptor.mapLiveUsage(
+                    JSONProviderPluginValue(OpenAIThroughputTests.livePayload),
+                    projectID: projectID,
+                    maximumEntries: 10000).throughput,
+                manual: manual)
         }
-        let implementation = OpenAIAPIProviderImplementation()
-        let orgWide = implementation.throughputPresentation(
-            snapshot: throughput,
-            settings: settings,
-            environment: [:])
-        #expect(orgWide.limitLine != nil)
-
-        settings[providerConfig: .openai, field: .secretWorkspace(logField: "projectID")] = "proj_fixture"
-        let projectScoped = implementation.throughputPresentation(
-            snapshot: throughput,
-            settings: settings,
-            environment: [:])
-        #expect(projectScoped.limitLine == nil)
-        #expect(projectScoped.limitPercent == nil)
-        #expect(projectScoped.action == .openOpenAILiveUsage)
+        #expect(try presentation(projectID: nil).limitLine != nil)
+        // The cached snapshot's scope decides, independent of the current project setting.
+        let scoped = try presentation(projectID: "proj_fixture")
+        #expect(scoped.limitLine == nil)
+        #expect(scoped.limitPercent == nil)
+        #expect(scoped.action == .openOpenAILiveUsage)
     }
 
     @Test

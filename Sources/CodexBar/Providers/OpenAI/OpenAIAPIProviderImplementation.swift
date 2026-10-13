@@ -66,29 +66,9 @@ struct OpenAIAPIProviderImplementation: ProviderImplementation {
         settings: SettingsStore)
         -> ProviderThroughputPresentation?
     {
-        self.throughputPresentation(
+        Self.throughputPresentation(
             snapshot: snapshot,
-            settings: settings,
-            environment: ProcessInfo.processInfo.environment)
-    }
-
-    @MainActor
-    func throughputPresentation(
-        snapshot: ProviderThroughputSnapshot,
-        settings: SettingsStore,
-        environment: [String: String])
-        -> ProviderThroughputPresentation
-    {
-        let resolved = ProviderRegistry.makeEnvironment(
-            base: environment,
-            provider: self.id,
-            settings: settings,
-            tokenOverride: nil)
-        // Project-scoped usage is only a slice of the org-wide traffic that org limits apply to.
-        let manual = OpenAIAPISettingsReader.projectID(environment: resolved) == nil
-            ? settings.providerConfig(for: self.id)?.modelRateLimits ?? []
-            : []
-        return Self.throughputPresentation(snapshot: snapshot, manual: manual)
+            manual: settings.providerConfig(for: self.id)?.modelRateLimits ?? [])
     }
 
     static func throughputPresentation(
@@ -97,7 +77,10 @@ struct OpenAIAPIProviderImplementation: ProviderImplementation {
         -> ProviderThroughputPresentation
     {
         var result = ProviderThroughputPresentation(action: .openOpenAILiveUsage)
-        if let model = snapshot.models.first,
+        // Project-scoped usage is only a slice of the org-wide traffic that org limits apply to. Use the
+        // snapshot's own scope: a cached snapshot can outlive a project setting change.
+        if snapshot.projectID == nil,
+           let model = snapshot.models.first,
            let limit = OpenAIOrgLimitResolver(
                manual: manual,
                projectCaps: nil).resolve(model.name)

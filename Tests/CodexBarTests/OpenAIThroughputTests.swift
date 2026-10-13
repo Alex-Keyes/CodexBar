@@ -65,21 +65,23 @@ struct OpenAIThroughputTests {
         #expect(throughput.fiveMinuteAverageTokensPerMinute == 34_400_000)
         #expect(throughput.minutes.suffix(3).filter { !$0.isPending }.isEmpty)
         #expect(throughput.models.first?.peakLimitCountedTokens == 97_000_000)
+        #expect(throughput.projectID == "proj_fixture & scope")
         #expect(result.usage.openAIAPIUsage != nil)
         let swift = try await OpenAILiveUsageFetcher(transport: Transport(liveBody: Self.livePage))
             .fetch(
-                environment: ["OPENAI_ADMIN_KEY": "synthetic-admin-key"],
+                environment: ["OPENAI_ADMIN_KEY": "synthetic-admin-key", "OPENAI_PROJECT_ID": "proj_fixture & scope"],
                 now: Self.now)
         #expect(swift.throughput == throughput)
         let mapped = try await Self.mappedLive(
             Self.liveSource(Self.livePayload),
             engine: engine)
-        #expect(mapped.throughput == swift.throughput)
         let mappedSnapshot = try OpenAIAPIProviderDescriptor.mapLiveUsage(
             JSONProviderPluginValue(Self.livePayload),
             projectID: nil,
             maximumEntries: 10000)
-        #expect(mappedSnapshot == swift)
+        #expect(mapped.throughput == mappedSnapshot.throughput)
+        #expect(mappedSnapshot.throughput.projectID == nil)
+        #expect(mappedSnapshot.minutes == swift.minutes)
     }
 
     @Test(arguments: Self.engines)
