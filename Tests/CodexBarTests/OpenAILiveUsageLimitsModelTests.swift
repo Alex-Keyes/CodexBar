@@ -31,6 +31,25 @@ struct OpenAILiveUsageLimitsModelTests {
         #expect(!OpenAILiveUsageLimitsPolicy.showsRule(limit: 151, peak: 100))
         #expect(!OpenAILiveUsageLimitsPolicy.showsRule(limit: 1, peak: 0))
         #expect(!OpenAILiveUsageLimitsPolicy.showsRule(limit: 0, peak: 100))
+
+        // A large partial bucket in the in-progress minute must not decide whether the rule fits.
+        let now = Date(timeIntervalSince1970: 120_025)
+        let snapshot = OpenAILiveUsageSnapshot(
+            minutes: [
+                .init(start: now.addingTimeInterval(-90), models: [
+                    .init(name: "a", inputTokens: 20, cachedInputTokens: 0, outputTokens: 0, requests: 1),
+                ]),
+                .init(start: now.addingTimeInterval(-30), models: [
+                    .init(name: "a", inputTokens: 900, cachedInputTokens: 0, outputTokens: 0, requests: 1),
+                ]),
+            ],
+            windowMinutes: 15,
+            fetchedAt: now,
+            projectID: nil)
+        let points = snapshot.series(for: .model("a"))
+        #expect(points.last?.isPending == true)
+        #expect(!OpenAILiveUsageLimitsPolicy.showsRule(limit: 100, points: points))
+        #expect(OpenAILiveUsageLimitsPolicy.showsRule(limit: 30, points: points))
     }
 
     @Test

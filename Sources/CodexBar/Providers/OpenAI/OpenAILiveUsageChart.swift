@@ -114,8 +114,7 @@ struct OpenAILiveUsageChart: View {
 
     private var showsLimitRule: Bool {
         guard let tpmLimit else { return false }
-        return OpenAILiveUsageLimitsPolicy.showsRule(
-            limit: tpmLimit, peak: self.snapshot.series(for: self.filter).map(\.limitCountedTokens).max() ?? 0)
+        return OpenAILiveUsageLimitsPolicy.showsRule(limit: tpmLimit, points: self.snapshot.series(for: self.filter))
     }
 
     private var segments: [Segment] {
