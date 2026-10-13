@@ -6,6 +6,7 @@ defineProvider({
   settings: [
     { key: "OPENAI_API_KEY", title: "API key", type: "secure" },
     { key: "OPENAI_PROJECT_ID", title: "Project ID", type: "plain" },
+    { key: "OPENAI_LIVE_MINUTES", title: "Tokens per minute", type: "plain" },
     { key: "OPENAI_HISTORY_DAYS", title: "History days", type: "plain" },
     { key: "OPENAI_ALLOW_BALANCE_FALLBACK", title: "Balance fallback", type: "plain" },
   ],
@@ -51,7 +52,7 @@ defineProvider({
       const query = [
         `start_time=${range.start}`,
         `end_time=${range.end}`,
-        "bucket_width=1d",
+        `bucket_width=${range.width || "1d"}`,
         `limit=${range.limit}`,
         `group_by=${encodeURIComponent(groupBy)}`,
       ];
@@ -116,6 +117,74 @@ defineProvider({
         }
       }
       return buckets;
+    }
+
+    async function liveUsage() {
+      if (ctx.settings.get("OPENAI_LIVE_MINUTES") === "0") return null;
+      try {
+        const fetchedAt = Math.floor(ctx.date.now().getTime() / 1000);
+        const startTime = Math.floor(fetchedAt / 60) * 60 - 59 * 60;
+        const response = await ctx.http.get(
+          queryURL(
+            "/v1/organization/usage/completions",
+            { start: startTime, end: fetchedAt, limit: 60, width: "1m" },
+            "model",
+            null,
+          ),
+          { timeoutSeconds: 20 },
+        );
+        if (response.status !== 200) return null;
+        const body = parseJSON(response.bodyText);
+        if (
+          !body ||
+          !Array.isArray(body.data) ||
+          body.data.length > 60 ||
+          typeof body.has_more !== "boolean" ||
+          (body.next_page != null && typeof body.next_page !== "string")
+        )
+          return null;
+        let entries = 0;
+        let totalTokens = 0;
+        let totalRequests = 0;
+        const buckets = body.data.map((raw) => {
+          if (
+            !raw ||
+            typeof raw !== "object" ||
+            Array.isArray(raw) ||
+            !Number.isSafeInteger(raw.start_time) ||
+            raw.start_time < startTime ||
+            raw.start_time > fetchedAt ||
+            raw.start_time % 60 !== 0 ||
+            !Number.isSafeInteger(raw.end_time) ||
+            raw.end_time <= raw.start_time ||
+            !Array.isArray(raw.results) ||
+            raw.results.length > 200
+          )
+            throw new Error("Invalid live bucket");
+          entries += raw.results.length;
+          if (entries > 10000) throw new Error("Too many live models");
+          const models = raw.results.map((item) => {
+            if (!item || typeof item !== "object" || Array.isArray(item)) throw new Error("Invalid live model");
+            const inputTokens = integer(item.input_tokens, "input_tokens", true) || 0;
+            const cachedInputTokens = integer(item.input_cached_tokens, "input_cached_tokens", true) || 0;
+            const outputTokens = integer(item.output_tokens, "output_tokens", true) || 0;
+            const requests = integer(item.num_model_requests, "num_model_requests", true) || 0;
+            integer(item.input_audio_tokens, "input_audio_tokens", true);
+            integer(item.output_audio_tokens, "output_audio_tokens", true);
+            if (cachedInputTokens > inputTokens) throw new Error("Invalid cached tokens");
+            totalTokens += inputTokens + outputTokens;
+            totalRequests += requests;
+            if (!Number.isSafeInteger(totalTokens) || !Number.isSafeInteger(totalRequests))
+              throw new Error("Unsafe live totals");
+            return { name: name(item.model, "unknown"), inputTokens, cachedInputTokens, outputTokens, requests };
+          });
+          return { startTime: raw.start_time, models };
+        });
+        return { windowMinutes: 60, startTime, fetchedAt, buckets };
+      } catch (error) {
+        if (error.transportClass === "cancelled") throw error;
+        return null;
+      }
     }
 
     try {
@@ -207,6 +276,7 @@ defineProvider({
             )
           : days.slice(-historyDays);
       const cost = costDays.reduce((sum, day) => sum + day.cost, 0);
+      const live = await liveUsage();
       const identity = { loginMethod: projectID ? `Admin API: ${projectID}` : "Admin API" };
       if (projectID) identity.organization = `Project: ${projectID}`;
       return {
@@ -217,6 +287,7 @@ defineProvider({
         sourceLabel: projectID ? "admin-api:project" : "admin-api",
         card: {
           openAIAPIUsage: {
+            ...(live ? { live } : {}),
             historyDays,
             projectID: projectID || null,
             daily: days.map((day) => ({

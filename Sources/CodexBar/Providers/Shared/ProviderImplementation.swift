@@ -30,6 +30,10 @@ protocol ProviderImplementation: Sendable {
 
     func detectVersion(context: ProviderVersionContext) async -> String?
 
+    @MainActor
+    func throughputPresentation(snapshot: ProviderThroughputSnapshot, settings: SettingsStore)
+        -> ProviderThroughputPresentation?
+
     func makeRuntime() -> (any ProviderRuntime)?
 
     /// Optional provider-specific settings toggles to render in the Providers pane.
@@ -45,6 +49,9 @@ protocol ProviderImplementation: Sendable {
     /// Optional explicit filesystem roots rendered with a shared directory picker.
     @MainActor
     func settingsDirectoryLists(context: ProviderSettingsContext) -> [ProviderSettingsDirectoryListDescriptor]
+
+    @MainActor
+    func settingsModelLimits(context: ProviderSettingsContext) -> [ProviderSettingsModelLimitsDescriptor]
 
     /// Optional provider-specific settings action rows to render in the Providers pane.
     @MainActor
@@ -145,6 +152,10 @@ extension ProviderImplementation {
         return detector?(context.browserDetection)
     }
 
+    @MainActor
+    func throughputPresentation(snapshot _: ProviderThroughputSnapshot, settings _: SettingsStore)
+    -> ProviderThroughputPresentation? { nil }
+
     func makeRuntime() -> (any ProviderRuntime)? {
         nil
     }
@@ -161,6 +172,11 @@ extension ProviderImplementation {
 
     @MainActor
     func settingsDirectoryLists(context _: ProviderSettingsContext) -> [ProviderSettingsDirectoryListDescriptor] {
+        []
+    }
+
+    @MainActor
+    func settingsModelLimits(context _: ProviderSettingsContext) -> [ProviderSettingsModelLimitsDescriptor] {
         []
     }
 

@@ -42,6 +42,7 @@ public struct ProviderIntentPayload: Codable, Sendable {
     public var accentColor: String?
     /// Three-state like accentColor: nil means an older sender, [] clears all hidden items.
     public var hiddenUsageItemIDs: [String]?
+    public var modelRateLimits: [ProviderModelRateLimit]?
     public var kiloKnownOrganizations: [KiloOrganization]?
     public var kiloEnabledOrganizationIDs: [String]?
     public var deepseekProfileID: String?
@@ -63,6 +64,7 @@ public struct ProviderIntentPayload: Codable, Sendable {
         self.accentColor = config.accentColor ?? ""
         // Preserve the three states: nil predates the preference, [] explicitly shows every item.
         self.hiddenUsageItemIDs = config.hiddenUsageItemIDs
+        self.modelRateLimits = config.modelRateLimits ?? []
         self.kiloKnownOrganizations = config.kiloKnownOrganizations
         self.kiloEnabledOrganizationIDs = config.kiloEnabledOrganizationIDs
         self.deepseekProfileID = config.deepseekProfileID
@@ -100,6 +102,9 @@ public struct ProviderIntentPayload: Codable, Sendable {
         // Older clients omit the field. Keep the local selection rather than erase it.
         if let hiddenUsageItemIDs = self.hiddenUsageItemIDs {
             result.hiddenUsageItemIDs = hiddenUsageItemIDs
+        }
+        if let modelRateLimits = self.modelRateLimits {
+            result.modelRateLimits = ProviderModelRateLimit.validated(modelRateLimits)
         }
         result.kiloKnownOrganizations = self.kiloKnownOrganizations
         result.kiloEnabledOrganizationIDs = self.kiloEnabledOrganizationIDs

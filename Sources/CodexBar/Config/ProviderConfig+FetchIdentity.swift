@@ -6,6 +6,7 @@ extension ProviderConfig {
         var copy = self
         copy.accentColor = nil
         copy.hiddenUsageItemIDs = nil
+        copy.modelRateLimits = nil
         return copy
     }
 }

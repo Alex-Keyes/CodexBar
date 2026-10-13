@@ -1,5 +1,6 @@
 import CodexBarCore
 import Foundation
+import SwiftUI
 
 struct OpenAIAPIProviderImplementation: ProviderImplementation {
     let id: UsageProvider = .openai
@@ -11,8 +12,15 @@ struct OpenAIAPIProviderImplementation: ProviderImplementation {
 
     @MainActor
     func observeSettings(_ settings: SettingsStore) {
-        _ = settings[providerConfig: .openai, field: .apiKey]
-        _ = settings[providerConfig: .openai, field: .secretWorkspace(logField: "projectID")]
+        _ = settings.providerConfig(for: self.id)?.pluginSettings?["OPENAI_LIVE_MINUTES"]
+        _ = settings[
+            providerConfig: .openai,
+            field: .apiKey,
+        ]
+        _ = settings[
+            providerConfig: .openai,
+            field: .secretWorkspace(logField: "projectID"),
+        ]
     }
 
     @MainActor
@@ -20,8 +28,104 @@ struct OpenAIAPIProviderImplementation: ProviderImplementation {
         if OpenAIAPISettingsReader.apiKey(environment: context.environment) != nil {
             return true
         }
-        return !context.settings[providerConfig: .openai, field: .apiKey]
+        return !context.settings[
+            providerConfig: .openai,
+            field: .apiKey,
+        ]
             .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    @MainActor
+    func appendActionMenuEntries(
+        context: ProviderMenuActionContext,
+        entries: inout [ProviderMenuEntry])
+    {
+        entries.append(contentsOf: self.liveUsageMenuEntries(
+            settings: context.settings,
+            environment: ProcessInfo.processInfo.environment))
+    }
+
+    @MainActor
+    func liveUsageMenuEntries(
+        settings: SettingsStore,
+        environment: [String: String]) -> [ProviderMenuEntry]
+    {
+        guard self.isAvailable(context: ProviderAvailabilityContext(
+            provider: self.id,
+            settings: settings,
+            environment: environment)) else { return [] }
+        return [.action(L("Live Usage"), .openOpenAILiveUsage)]
+    }
+
+    @MainActor
+    func throughputPresentation(
+        snapshot: ProviderThroughputSnapshot,
+        settings: SettingsStore)
+        -> ProviderThroughputPresentation?
+    {
+        Self.throughputPresentation(
+            snapshot: snapshot,
+            manual: settings.providerConfig(for: self.id)?.modelRateLimits ?? [])
+    }
+
+    static func throughputPresentation(
+        snapshot: ProviderThroughputSnapshot,
+        manual: [ProviderModelRateLimit])
+        -> ProviderThroughputPresentation
+    {
+        var result = ProviderThroughputPresentation(action: .openOpenAILiveUsage)
+        if let model = snapshot.models.first,
+           let limit = OpenAIOrgLimitResolver(
+               manual: manual,
+               projectCaps: nil).resolve(model.name)
+        {
+            let percent = Double(model.peakLimitCountedTokens) / Double(limit.tokensPerMinute) * 100
+            result.limitPercent = percent
+            result.limitLine = L(
+                "%@ · peak %@ · %@ of org limit",
+                model.name,
+                ProviderThroughputSection.count(model.peakTPM),
+                percent.formatted(.number.precision(.fractionLength(0))) + "%")
+        }
+        return result
+    }
+
+    @MainActor
+    func settingsToggles(context: ProviderSettingsContext) -> [ProviderSettingsToggleDescriptor] {
+        [.init(
+            id: "openai-live-minutes",
+            title: "Tokens per minute",
+            subtitle: "Fetches 1-minute usage each refresh for the menu card chart and the menu bar Tokens/min token.",
+            binding: Binding(
+                get: { context.settings.providerConfig(for: self.id)?.pluginSettings?["OPENAI_LIVE_MINUTES"] != "0" },
+                set: { enabled in
+                    context.settings.updateProviderConfig(provider: self.id) { config in
+                        var values = config.pluginSettings ?? [:]
+                        values["OPENAI_LIVE_MINUTES"] = enabled ? "60" : "0"
+                        config.pluginSettings = values
+                    }
+                }),
+            statusText: nil,
+            actions: [],
+            isVisible: nil,
+            isEnabled: nil,
+            onChange: nil,
+            onAppDidBecomeActive: nil,
+            onAppearWhenEnabled: nil)]
+    }
+
+    @MainActor
+    func settingsModelLimits(context: ProviderSettingsContext) -> [ProviderSettingsModelLimitsDescriptor] {
+        [.init(
+            id: "openai-org-limits",
+            title: "Organization rate limits",
+            subtitle: "OpenAI's API doesn't expose organization rate limits. Copy them from your organization's " +
+                "Limits page. Model IDs match dated snapshots (gpt-5 covers gpt-5-2025-…).",
+            binding: context.modelRateLimitsBinding(),
+            actions: [.openURL(
+                id: "openai-open-limits",
+                title: "Open organization Limits",
+                url: URL(string: "https://platform.openai.com/settings/organization/limits"))])]
     }
 
     @MainActor

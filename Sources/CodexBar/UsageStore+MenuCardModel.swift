@@ -95,6 +95,11 @@ extension UsageStore {
             now: now)
         return UsageMenuCardView.Model.Input(
             provider: provider,
+            throughputPresentation: snapshot?.throughput.flatMap {
+                ProviderCatalog.implementation(for: provider)?.throughputPresentation(
+                    snapshot: $0,
+                    settings: self.settings)
+            },
             metadata: metadata,
             snapshot: snapshot,
             codexProjection: codexProjection,

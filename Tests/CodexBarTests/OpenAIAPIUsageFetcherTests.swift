@@ -472,7 +472,11 @@ struct OpenAIAPIUsageFetcherTests {
         apiKey: String, projectID: String? = nil, session: any ProviderHTTPTransport, now: Date, historyDays: Int)
         async throws -> OpenAIAPIUsageSnapshot
     {
-        var settings = ["OPENAI_HISTORY_DAYS": String(historyDays), "OPENAI_ALLOW_BALANCE_FALLBACK": "0"]
+        // These fixtures isolate daily pagination; minute requests have separate cross-engine coverage.
+        var settings = [
+            "OPENAI_HISTORY_DAYS": String(historyDays), "OPENAI_ALLOW_BALANCE_FALLBACK": "0",
+            "OPENAI_LIVE_MINUTES": "0",
+        ]
         settings["OPENAI_PROJECT_ID"] = projectID
         let result = try await ProviderPluginRuntime(bundledPlugin: "openai", transport: session)
             .fetchUsage(settings: settings, secrets: ["OPENAI_API_KEY": apiKey], now: now)

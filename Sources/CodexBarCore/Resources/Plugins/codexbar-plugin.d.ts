@@ -131,6 +131,21 @@ interface CodexBarFetchResult {
   sourceLabel?: string;
   card?: {
     openAIAPIUsage: {
+      live?: {
+        windowMinutes: number;
+        startTime: number;
+        fetchedAt: number;
+        buckets: Array<{
+          startTime: number;
+          models: Array<{
+            name: string;
+            inputTokens: number;
+            cachedInputTokens: number;
+            outputTokens: number;
+            requests: number;
+          }>;
+        }>;
+      };
       historyDays: number;
       projectID?: string | null;
       daily: Array<{

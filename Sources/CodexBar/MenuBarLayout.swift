@@ -506,6 +506,8 @@ enum MenuBarLayoutToken: Codable, Hashable, Sendable {
     case runsOutCompact
     case balance
     case costToday
+    case tokensPerMinute
+    case tokensSparkline
     case costWindow
     case separatorDot
     case space
@@ -520,7 +522,7 @@ enum MenuBarLayoutToken: Codable, Hashable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case icon, providerName, accountLabel, percent, lanePercent, extraPercent, pace, usageBar, progressBar
         case resetCountdown, resetAbsolute, windowResetCountdown, windowResetAbsolute
-        case runsOut, runsOutCompact, balance, costToday
+        case runsOut, runsOutCompact, balance, costToday, tokensPerMinute, tokensSparkline
         case costWindow = "cost30d"
         case separatorDot, space, hidden, conditional
     }
@@ -555,14 +557,15 @@ enum MenuBarLayoutToken: Codable, Hashable, Sendable {
     /// Tokens without an older representation are dropped after mapping graphical bars to percentages.
     var hasReleasedRepresentation: Bool {
         switch self {
-        case .extraPercent, .windowResetCountdown, .windowResetAbsolute, .progressBar: false
+        case .extraPercent, .windowResetCountdown, .windowResetAbsolute, .progressBar, .tokensPerMinute,
+             .tokensSparkline: false
         default: true
         }
     }
 
     var hasV3Representation: Bool {
         switch self {
-        case .extraPercent, .progressBar: false
+        case .extraPercent, .progressBar, .tokensPerMinute, .tokensSparkline: false
         default: true
         }
     }
@@ -570,7 +573,7 @@ enum MenuBarLayoutToken: Codable, Hashable, Sendable {
     var hasLegacyRepresentation: Bool {
         switch self {
         case .conditional, .extraPercent, .hidden, .windowResetCountdown, .windowResetAbsolute,
-             .progressBar: false
+             .progressBar, .tokensPerMinute, .tokensSparkline: false
         default: true
         }
     }

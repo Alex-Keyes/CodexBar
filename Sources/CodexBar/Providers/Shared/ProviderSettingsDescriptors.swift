@@ -46,6 +46,16 @@ struct ProviderSettingsContext {
         self.settings.providerConfigBinding(provider: self.provider, field: field)
     }
 
+    func modelRateLimitsBinding() -> Binding<[ProviderModelRateLimit]> {
+        Binding(
+            get: { self.settings.providerConfig(for: self.provider)?.modelRateLimits ?? [] },
+            set: { limits in
+                self.settings.updateProviderConfig(provider: self.provider, affectsBackgroundWork: false) {
+                    $0.modelRateLimits = ProviderModelRateLimit.validated(limits)
+                }
+            })
+    }
+
     func providerConfigSecretBinding(key: String, logField: String) -> Binding<String> {
         self.settings.providerConfigSecretBinding(provider: self.provider, key: key, logField: logField)
     }
@@ -171,6 +181,16 @@ struct ProviderSettingsDirectoryListDescriptor: Identifiable {
     let title: String
     let subtitle: String
     let binding: Binding<[String]>
+}
+
+/// Shared per-model throughput editor; providers contribute only data and actions.
+@MainActor
+struct ProviderSettingsModelLimitsDescriptor: Identifiable {
+    let id: String
+    let title: String
+    let subtitle: String
+    let binding: Binding<[ProviderModelRateLimit]>
+    let actions: [ProviderSettingsActionDescriptor]
 }
 
 /// Shared action row descriptor rendered in the Providers settings pane.

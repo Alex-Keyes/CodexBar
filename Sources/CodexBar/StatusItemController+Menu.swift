@@ -622,7 +622,8 @@ extension StatusItemController {
                         "layout=\(self.settings.mergedOverviewLayout.rawValue)",
                     ]),
                 submenu: submenu,
-                containsInteractiveControls: row.model.subtitleStyle == .error || row.model.usesLiveSubtitle,
+                containsInteractiveControls: row.model.showsChartSwitch
+                    || row.model.subtitleStyle == .error || row.model.usesLiveSubtitle,
                 usesGPUSelection: true,
                 onClick: { [weak self, weak interactionMenu] in
                     guard let self, let interactionMenu else { return }
@@ -1296,6 +1297,14 @@ extension StatusItemController {
                 layoutModel: layoutModel,
                 bottomPadding: bottomPadding,
                 width: width)
+                .environment(\.providerCardAction, ProviderCardAction(perform: { [weak self, weak menu] action in
+                    guard let self else { return }
+                    menu?.cancelTracking()
+                    let (selector, object) = self.selector(for: action)
+                    let sender = NSMenuItem()
+                    sender.representedObject = object
+                    NSApp.sendAction(selector, to: self, from: sender)
+                }))
             let usageSubmenu = self.makeUsageSubmenu(
                 provider: provider,
                 webItems: webItems,

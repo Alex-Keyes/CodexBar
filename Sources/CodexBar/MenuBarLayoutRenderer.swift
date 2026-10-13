@@ -84,6 +84,8 @@ struct MenuBarLayoutRenderData: Hashable {
     let automaticPace: String?
     let runsOut: String?
     let balance: String?
+    var tokensPerMinute: Int?
+    var tokensSparkline: MenuBarTokensSparkline?
     let costToday: String?
     let cost30d: String?
     /// Numeric twins of the display strings above, for conditional predicates.
@@ -653,11 +655,11 @@ final class MenuBarLayoutRenderer {
         providerTintColor: NSColor? = nil)
         -> (value: NSAttributedString, accessibilityText: String?)
     {
-        if let rendered = self.renderProviderTextItem(
+        if let rendered = self.renderContentItem(
             item,
             data: data,
-            showUsed: options.showUsed,
-            attributes: style.attributes)
+            style: style,
+            options: options)
         {
             return rendered
         }
@@ -742,6 +744,11 @@ final class MenuBarLayoutRenderer {
                 data.balance,
                 unavailableLabel: L("%@ unavailable", L("Balance")),
                 attributes: style.attributes)
+        case .tokensPerMinute:
+            return self.optionalTextToken(
+                data.tokensPerMinute.map { ProviderThroughputSection.count($0) + "/min" },
+                unavailableLabel: L("%@ unavailable", L("Tokens / min")),
+                attributes: style.attributes)
         case .costToday:
             return self.optionalTextToken(
                 data.costToday,
@@ -764,8 +771,8 @@ final class MenuBarLayoutRenderer {
                 self.missingValue,
                 accessibilityText: L("menu_bar_layout_conditional_unavailable"),
                 attributes: style.attributes)
-        case .providerName, .accountLabel, .lanePercent, .extraPercent:
-            preconditionFailure("Provider text tokens should render before the main switch")
+        case .providerName, .accountLabel, .lanePercent, .extraPercent, .tokensSparkline:
+            preconditionFailure("Provider text and secondary content tokens should render before the main switch")
         case .usageBar, .progressBar:
             preconditionFailure("Usage meter tokens should render before the main switch")
         }
@@ -860,14 +867,16 @@ final class MenuBarLayoutRenderer {
         L("%@ icon", data.providerName ?? L("Provider"))
     }
 
-    private static func renderProviderTextItem(
+    private static func renderContentItem(
         _ item: MenuBarLayoutToken,
         data: MenuBarLayoutRenderData,
-        showUsed: Bool,
-        attributes: [NSAttributedString.Key: Any])
+        style: TokenStyle,
+        options: MenuBarLayoutRenderOptions)
         -> (value: NSAttributedString, accessibilityText: String?)?
     {
-        switch item {
+        let attributes = style.attributes
+        let showUsed = options.showUsed
+        return switch item {
         case .providerName:
             self.optionalTextToken(
                 data.providerName,
@@ -886,9 +895,37 @@ final class MenuBarLayoutRenderer {
                 attributes: attributes)
         case let .extraPercent(id):
             self.extraPercentToken(id, data: data, showUsed: showUsed, attributes: attributes)
+        case .tokensSparkline:
+            self.sparklineToken(data: data, style: style, options: options)
         default:
             nil
         }
+    }
+
+    private static func sparklineToken(
+        data: MenuBarLayoutRenderData,
+        style: TokenStyle,
+        options: MenuBarLayoutRenderOptions)
+        -> (value: NSAttributedString, accessibilityText: String?)
+    {
+        guard let graph = data.tokensSparkline,
+              let image = graph.image(height: style.iconHeight, highlighted: options.isHighlighted)
+        else {
+            return self.textToken(
+                self.missingValue,
+                accessibilityText: L("%@ unavailable", L("Tokens / min graph")),
+                attributes: style.attributes)
+        }
+        let attachment = NSTextAttachment()
+        attachment.image = Self.attachmentImage(image, tint: style.foregroundColor)
+        attachment.bounds = NSRect(
+            x: 0,
+            y: ((style.font.capHeight - style.iconHeight) / 2).rounded(),
+            width: image.size.width,
+            height: style.iconHeight)
+        let value = NSMutableAttributedString(attachment: attachment)
+        value.addAttributes(style.attributes, range: NSRange(location: 0, length: value.length))
+        return (value, L("Tokens per minute, latest %@", graph.latest.map(ProviderThroughputSection.count) ?? "—"))
     }
 
     private static func lanePercentToken(

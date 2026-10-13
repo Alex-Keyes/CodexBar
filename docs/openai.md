@@ -1,7 +1,8 @@
 ---
-summary: "OpenAI API provider: Admin API key usage/cost graphs and legacy balance fallback."
+summary: "OpenAI API provider: Admin API key daily graphs, per-minute live usage, and legacy balance fallback."
 read_when:
   - Updating OpenAI API Platform usage or cost display
+  - Updating the OpenAI Live Usage window
   - Debugging OPENAI_ADMIN_KEY or OPENAI_API_KEY behavior
 ---
 
@@ -57,12 +58,70 @@ that endpoint is not project-filtered. The legacy `OPENAI_API_KEY` environment p
 
 ## Menu display
 
-- Admin API data renders inline Today/7d/configured-window KPIs plus a compact spend chart.
+- Admin API data renders a **Tokens / min · last hour** chart above the daily spend dashboard, with the latest reported minute, peak, and (when configured) the busiest model’s manual org-limit utilization. Pending minutes are shaded. Click **Live Usage…** to open the detailed window.
+- **Settings → Providers → OpenAI → Tokens per minute** is on by default. Each refresh adds one `bucket_width=1m`, `group_by=model`, `limit=60` completion-usage request, with the same project scope. Disable it to omit the chart and minute request (`OPENAI_LIVE_MINUTES=0`; enabled is `60`). A failed minute request leaves the daily data usable.
+- The menu bar layout editor offers an optional **Tokens / min** value such as `49M/min`; default layouts are unchanged.
+- Daily Admin API data renders inline Today/7d/configured-window KPIs plus a compact spend chart.
 - The inline usage card opens a hosted chart submenu with daily spend, token, and request trends plus selected-day detail.
 - Top model and top spend labels come from the configured completion/cost buckets when the Admin API returns them.
 - Legacy balance data keeps the older available/used credit summary and does not show organization graphs.
 - Project-scoped Admin API data labels the account as `Admin API: <project>` and the organization line as
   `Project: <project>`.
+
+## Live usage
+
+Choose **Live Usage** in the OpenAI provider menu to open a separate, on-demand window. It defaults to **All models**;
+choose a specific model in the picker or table to inspect its throughput. The filter is not saved across app launches.
+The 15-minute, 1-hour (default), and 6-hour ranges show tokens per minute, recent and peak throughput, token totals,
+and request counts. Cached input is a subset of input tokens; total tokens are input plus output.
+
+The window reads `GET /v1/organization/usage/completions` with `bucket_width=1m` and `group_by=model`, following
+pagination and filling missing minutes on a regular grid. This covers completions/responses usage only; embeddings, images,
+and separate audio endpoints are not included. It requires an organization Admin API key (`sk-admin-…`), even when
+the daily card can fall back to a legacy balance. Credentials and optional `project_ids` scoping use the same settings
+and selected-account rules as the daily view.
+
+While open, the window polls every 30 seconds and supports Refresh (⌘R). Rate limiting doubles the polling interval
+up to 5 minutes; a successful fetch restores 30 seconds. Closing the window stops polling. Failed requests keep the
+last successful snapshot visible with an inline error. The data is near-realtime: buckets commonly arrive 2–3 minutes late.
+**Latest** shows the newest complete minute with any reported tokens across all models, searched within the last
+10 complete minutes. Its timestamp identifies that reporting frontier; the five-minute average ends there too.
+Selecting a model keeps the same frontier, so a model idle at that minute correctly shows zero. If all ten minutes
+are empty, the last complete minute is used so genuine idle periods show zero. Minutes after the frontier,
+including the in-progress minute, are shaded as **reporting…**, rather than drawn as zero bars. This is organization usage across all API keys and harnesses within the selected
+project scope, or the whole organization when no project is configured.
+
+### Organization rate-limit headroom
+
+The Live Usage window compares each model's latest reported minute and peak tokens per minute (TPM), plus peak
+requests per minute (RPM), with **manual organization limits from Settings only**. The single-model view shows
+utilization and a dashed chart line when a manual limit is near the plotted range; otherwise it labels the limit
+off scale. Without a manual limit it shows **Org limit not set** and a shortcut to Settings. The all-models table
+shows manual org limits and peak utilization; the highest-utilization tile considers only models with manual
+limits and never combines unrelated model limits.
+
+OpenAI has no organization-level limits endpoint. Per-project limits are **project caps**, not an organization
+ceiling: observed organization traffic exceeded every project's cap because traffic was spread across projects.
+For context, CodexBar lists active projects with `GET /v1/organization/projects` and reads
+`GET /v1/organization/projects/{project_id}/rate_limits`, taking the maximum TPM and RPM independently for each
+model across up to **25 active projects**. The table and single-model limit tile show project caps separately;
+project caps never drive utilization percentages or chart limit lines. A truncated sample is labeled. Discovery
+always covers the organization, even when usage is filtered by `OPENAI_PROJECT_ID` or `workspaceID`.
+
+Use **Limits…** or **Set org limit…** to open Settings → Providers → OpenAI → **Organization rate limits**.
+Copy the limits from the [organization Limits page](https://platform.openai.com/settings/organization/limits).
+Enter a model ID, positive TPM, and optional positive RPM. The editor accepts numbers such as `40000000`,
+`40,000,000`, `40M`, `150k`, and `1.5M`. Invalid edits remain local until valid. Manual entries apply immediately
+to an open window. Manual limits and project caps each match exact model IDs first, then the longest ID followed
+by a hyphen. Thus `gpt-4o-mini` matches `gpt-4o-mini-2024-07-18`, while `gpt-4` does not match `gpt-4o`.
+
+Project caps are fetched when the window opens, then at most every 15 minutes. Refresh refetches them only if the
+last attempt is older than 5 minutes. Permission, rate-limit, and network failures leave usage and its polling
+backoff untouched; a secondary message exposes the error on hover. Manual limits and the last successful project
+caps remain usable. Credentials follow the same Admin-key resolution as live usage.
+
+**% of limit** counts uncached input + output; cached input appears not to count toward TPM. This is observed behavior, not a documented OpenAI rule. The limiter also reserves `max_tokens` up front, so short bursts can still hit limits. Charts and throughput totals continue to include cached input; a filtered chart stacks uncached input and output below cached input, so its limit line compares against the limit-counted stack.
+Some model families share one limit; utilization here is per model and does not aggregate shared families.
 
 ## Notes
 

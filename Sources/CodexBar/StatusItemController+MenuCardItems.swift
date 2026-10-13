@@ -59,7 +59,7 @@ extension StatusItemController {
         // Content is erased so every row shares one outer AppKit class. Tab switches can replant
         // standard and GPU-selection payloads in place instead of detaching `item.view`.
         let payload = MenuCardRowPayload(
-            content: AnyView(view),
+            content: AnyView(view.environment(\.providerMenuChartSettings, self.settings)),
             showsSubmenuIndicator: submenu != nil,
             submenuIndicatorAlignment: submenuIndicatorAlignment,
             submenuIndicatorTopPadding: submenuIndicatorTopPadding,
