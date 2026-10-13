@@ -57,7 +57,9 @@ struct OpenAIAPIUsageFetcherTests {
                   "object": "organization.usage.completions.result",
                   "input_tokens": 1000,
                   "input_cached_tokens": 250,
+                  "input_audio_tokens": 100,
                   "output_tokens": 500,
+                  "output_audio_tokens": 50,
                   "num_model_requests": 7,
                   "model": "gpt-5.2"
                 },

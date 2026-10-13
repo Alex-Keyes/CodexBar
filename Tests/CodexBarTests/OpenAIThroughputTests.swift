@@ -13,12 +13,12 @@ struct OpenAIThroughputTests {
     static let empty = #"{"data":[],"has_more":false}"#
 
     @Test(arguments: Self.engines)
-    func `live throughput counts audio tokens in both parsers`(engine: ProviderPluginEngineKind) async throws {
-        // Text and audio are reported separately; cached input may exceed text-only input.
+    func `live throughput does not count audio breakdowns twice`(engine: ProviderPluginEngineKind) async throws {
+        // input_tokens/output_tokens already include the audio portions reported in the breakdown fields.
         let body = #"""
         {"data":[{"start_time":119760,"end_time":119820,"results":[{
-          "model":"model-fixture","input_tokens":100,"input_audio_tokens":40,"input_cached_tokens":120,
-          "output_tokens":10,"output_audio_tokens":5,"num_model_requests":2
+          "model":"model-fixture","input_tokens":100,"input_audio_tokens":40,"input_cached_tokens":60,
+          "output_tokens":15,"output_audio_tokens":5,"num_model_requests":2
         }]}],"has_more":false}
         """#
         let result = try await Self.runtime(transport: Transport(liveBody: body), engine: engine).fetchResult(
@@ -26,8 +26,8 @@ struct OpenAIThroughputTests {
             secrets: ["OPENAI_API_KEY": "synthetic-admin-key"],
             now: Self.now)
         let throughput = try #require(result.usage.throughput)
-        #expect(throughput.peakTokensPerMinute == 155)
-        #expect(throughput.models.first?.peakLimitCountedTokens == 35)
+        #expect(throughput.peakTokensPerMinute == 115)
+        #expect(throughput.models.first?.peakLimitCountedTokens == 55)
         let swift = try await OpenAILiveUsageFetcher(transport: Transport(liveBody: body))
             .fetch(environment: ["OPENAI_ADMIN_KEY": "synthetic-admin-key"], now: Self.now)
         #expect(swift.throughput == throughput)

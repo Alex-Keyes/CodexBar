@@ -165,17 +165,13 @@ defineProvider({
           if (entries > 10000) throw new Error("Too many live models");
           const models = raw.results.map((item) => {
             if (!item || typeof item !== "object" || Array.isArray(item)) throw new Error("Invalid live model");
-            // Text and audio are reported separately; fold audio in like the daily totals do.
-            const inputTokens =
-              (integer(item.input_tokens, "input_tokens", true) || 0) +
-              (integer(item.input_audio_tokens, "input_audio_tokens", true) || 0);
+            // input_tokens/output_tokens already aggregate text, audio, and image; audio fields are breakdowns.
+            const inputTokens = integer(item.input_tokens, "input_tokens", true) || 0;
             const cachedInputTokens = integer(item.input_cached_tokens, "input_cached_tokens", true) || 0;
-            const outputTokens =
-              (integer(item.output_tokens, "output_tokens", true) || 0) +
-              (integer(item.output_audio_tokens, "output_audio_tokens", true) || 0);
+            const outputTokens = integer(item.output_tokens, "output_tokens", true) || 0;
             const requests = integer(item.num_model_requests, "num_model_requests", true) || 0;
-            if (!Number.isSafeInteger(inputTokens) || !Number.isSafeInteger(outputTokens))
-              throw new Error("Unsafe live tokens");
+            integer(item.input_audio_tokens, "input_audio_tokens", true);
+            integer(item.output_audio_tokens, "output_audio_tokens", true);
             if (cachedInputTokens > inputTokens) throw new Error("Invalid cached tokens");
             totalTokens += inputTokens + outputTokens;
             totalRequests += requests;
@@ -251,23 +247,24 @@ defineProvider({
             throw ctx.fail.parseFailure("Failed to parse OpenAI completion result");
           const input = integer(item.input_tokens, "input_tokens", true) || 0;
           const cached = integer(item.input_cached_tokens, "input_cached_tokens", true) || 0;
-          const audioInput = integer(item.input_audio_tokens, "input_audio_tokens", true) || 0;
+          // input_tokens/output_tokens already aggregate text, audio, and image; audio fields are breakdowns.
+          integer(item.input_audio_tokens, "input_audio_tokens", true);
           const output = integer(item.output_tokens, "output_tokens", true) || 0;
-          const audioOutput = integer(item.output_audio_tokens, "output_audio_tokens", true) || 0;
+          integer(item.output_audio_tokens, "output_audio_tokens", true);
           const requests = integer(item.num_model_requests, "num_model_requests", true) || 0;
-          const tokens = input + audioInput + output + audioOutput;
+          const tokens = input + output;
           day.requests += requests;
-          day.input += input + audioInput;
+          day.input += input;
           day.cached += cached;
-          day.output += output + audioOutput;
+          day.output += output;
           day.tokens += tokens;
           const modelName = name(item.model, "Responses and Chat Completions");
           const model = day.models.get(modelName) || { requests: 0, tokens: 0, input: 0, cached: 0, output: 0 };
           model.requests += requests;
           model.tokens += tokens;
-          model.input += input + audioInput;
+          model.input += input;
           model.cached += cached;
-          model.output += output + audioOutput;
+          model.output += output;
           day.models.set(modelName, model);
         }
       }
