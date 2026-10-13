@@ -7,6 +7,7 @@ extension ProviderConfig {
         copy.accentColor = nil
         copy.hiddenUsageItemIDs = nil
         copy.modelRateLimits = nil
+        copy.claudeResetCreditsVisibilityMigrated = nil
         return copy
     }
 }

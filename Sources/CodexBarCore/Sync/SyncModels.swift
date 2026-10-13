@@ -43,6 +43,8 @@ public struct ProviderIntentPayload: Codable, Sendable {
     /// Three-state like accentColor: nil means an older sender, [] clears all hidden items.
     public var hiddenUsageItemIDs: [String]?
     public var modelRateLimits: [ProviderModelRateLimit]?
+    /// Monotonic upgrade marker; older senders omit it and cannot undo the receiving Mac's migration.
+    public var claudeResetCreditsVisibilityMigrated: Bool?
     public var kiloKnownOrganizations: [KiloOrganization]?
     public var kiloEnabledOrganizationIDs: [String]?
     public var deepseekProfileID: String?
@@ -65,6 +67,7 @@ public struct ProviderIntentPayload: Codable, Sendable {
         // Preserve the three states: nil predates the preference, [] explicitly shows every item.
         self.hiddenUsageItemIDs = config.hiddenUsageItemIDs
         self.modelRateLimits = config.modelRateLimits ?? []
+        self.claudeResetCreditsVisibilityMigrated = config.claudeResetCreditsVisibilityMigrated
         self.kiloKnownOrganizations = config.kiloKnownOrganizations
         self.kiloEnabledOrganizationIDs = config.kiloEnabledOrganizationIDs
         self.deepseekProfileID = config.deepseekProfileID
@@ -105,6 +108,9 @@ public struct ProviderIntentPayload: Codable, Sendable {
         }
         if let modelRateLimits = self.modelRateLimits {
             result.modelRateLimits = ProviderModelRateLimit.validated(modelRateLimits)
+        }
+        if self.claudeResetCreditsVisibilityMigrated == true {
+            result.claudeResetCreditsVisibilityMigrated = true
         }
         result.kiloKnownOrganizations = self.kiloKnownOrganizations
         result.kiloEnabledOrganizationIDs = self.kiloEnabledOrganizationIDs
