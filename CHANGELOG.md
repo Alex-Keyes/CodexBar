@@ -22,6 +22,8 @@
 
 ### Fixed
 
+- Claude: open the Platform usage page instead of billing for the default Usage Dashboard action.
+
 - Menu bar: show a single leading provider icon at full size beside two text rows while preserving inline icons for merged providers and tinted layouts (#4454). Thanks @deinspanjer!
 - Menu cards: separate stale Claude usage notices from errors, render inline commands without backticks, align error copy controls, and clarify when Keychain access is disabled.
 
