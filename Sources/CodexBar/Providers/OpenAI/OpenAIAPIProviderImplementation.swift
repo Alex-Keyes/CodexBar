@@ -66,9 +66,29 @@ struct OpenAIAPIProviderImplementation: ProviderImplementation {
         settings: SettingsStore)
         -> ProviderThroughputPresentation?
     {
-        Self.throughputPresentation(
+        self.throughputPresentation(
             snapshot: snapshot,
-            manual: settings.providerConfig(for: self.id)?.modelRateLimits ?? [])
+            settings: settings,
+            environment: ProcessInfo.processInfo.environment)
+    }
+
+    @MainActor
+    func throughputPresentation(
+        snapshot: ProviderThroughputSnapshot,
+        settings: SettingsStore,
+        environment: [String: String])
+        -> ProviderThroughputPresentation
+    {
+        let resolved = ProviderRegistry.makeEnvironment(
+            base: environment,
+            provider: self.id,
+            settings: settings,
+            tokenOverride: nil)
+        // Project-scoped usage is only a slice of the org-wide traffic that org limits apply to.
+        let manual = OpenAIAPISettingsReader.projectID(environment: resolved) == nil
+            ? settings.providerConfig(for: self.id)?.modelRateLimits ?? []
+            : []
+        return Self.throughputPresentation(snapshot: snapshot, manual: manual)
     }
 
     static func throughputPresentation(

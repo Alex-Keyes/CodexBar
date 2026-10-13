@@ -262,6 +262,26 @@ struct OpenAIOrgRateLimitsTests {
         #expect(snapshot.highestUtilization(limits: limits) == nil)
     }
 
+    @Test
+    func `project scoped snapshots never report org limit utilization`() {
+        let minutes: [OpenAILiveUsageSnapshot.Minute] = [.init(
+            start: Self.now.addingTimeInterval(-90),
+            models: [.init(name: "a", inputTokens: 80, cachedInputTokens: 0, outputTokens: 20, requests: 4)])]
+        let limits = OpenAIOrgLimitResolver(manual: [.init(model: "a", tokensPerMinute: 200)], projectCaps: nil)
+        let orgWide = OpenAILiveUsageSnapshot(minutes: minutes, windowMinutes: 15, fetchedAt: Self.now, projectID: nil)
+        #expect(orgWide.utilization(for: .model("a"), limits: limits)?.peakTPMPercent == 50)
+
+        let scoped = OpenAILiveUsageSnapshot(
+            minutes: minutes,
+            windowMinutes: 15,
+            fetchedAt: Self.now,
+            projectID: "proj_fixture")
+        #expect(scoped.utilization(for: .model("a"), limits: limits) == nil)
+        #expect(scoped.highestUtilization(limits: limits) == nil)
+        #expect(scoped.modelRows(limits: limits).first?.tpmLimit == nil)
+        #expect(scoped.modelRows(limits: limits).first?.peakTPMPercent == nil)
+    }
+
     private static func page(_ rows: String, more: Bool = false, cursor: String? = nil) -> String {
         let cursor = cursor.map { "\"\($0)\"" } ?? "null"
         return #"{"object":"list","data":[\#(rows)],"has_more":\#(more),"last_id":\#(cursor)}"#

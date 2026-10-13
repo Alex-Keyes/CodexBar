@@ -139,7 +139,8 @@ struct OpenAILiveUsageView: View {
                     Self.count(summary.cachedInputTokens),
                     Self.count(summary.outputTokens)))
             self.metric(L("Requests in window"), value: summary.requests, detail: "")
-            if case let .model(name) = self.model.filter {
+            // Org limits don't apply to a project's slice of traffic; the footer names the project.
+            if snapshot.projectID == nil, case let .model(name) = self.model.filter {
                 self.limitTile(utilization, projectCap: self.model.limits.projectCap(for: name))
             } else if let highest = snapshot.highestUtilization(limits: self.model.limits),
                       let percent = highest.peakTPMPercent

@@ -98,7 +98,9 @@ requests per minute (RPM), with **manual organization limits from Settings only*
 utilization and a dashed chart line when a manual limit is near the plotted range; otherwise it labels the limit
 off scale. Without a manual limit it shows **Org limit not set** and a shortcut to Settings. The all-models table
 shows manual org limits and peak utilization; the highest-utilization tile considers only models with manual
-limits and never combines unrelated model limits.
+limits and never combines unrelated model limits. Project-scoped usage (`OPENAI_PROJECT_ID` or `workspaceID`) is
+only one project's slice of the organization traffic those limits apply to, so the window, chart, and menu card show
+no org-limit utilization or limit tile while a project is configured.
 
 OpenAI has no organization-level limits endpoint. Per-project limits are **project caps**, not an organization
 ceiling: observed organization traffic exceeded every project's cap because traffic was spread across projects.

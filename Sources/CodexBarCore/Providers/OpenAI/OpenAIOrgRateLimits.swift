@@ -74,6 +74,8 @@ extension OpenAILiveUsageSnapshot {
         for filter: OpenAILiveUsageModelFilter,
         limits: OpenAIOrgLimitResolver) -> OpenAIOrgLimitUtilization?
     {
+        // Project-scoped usage is only a slice of the org-wide traffic that org limits apply to.
+        guard self.projectID == nil else { return nil }
         guard case let .model(name) = filter, let limit = limits.resolve(name) else { return nil }
         let points = self.series(for: filter)
         let latest = points.first { $0.start == self.reportingFrontier }
