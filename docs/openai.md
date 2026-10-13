@@ -120,7 +120,7 @@ last attempt is older than 5 minutes. Permission, rate-limit, and network failur
 backoff untouched; a secondary message exposes the error on hover. Manual limits and the last successful project
 caps remain usable. Credentials follow the same Admin-key resolution as live usage.
 
-**% of limit** counts uncached input + output; cached input appears not to count toward TPM. This is observed behavior, not a documented OpenAI rule. The limiter also reserves `max_tokens` up front, so short bursts can still hit limits. Charts and throughput totals continue to include cached input; a filtered chart stacks uncached input and output below cached input, so its limit line compares against the limit-counted stack.
+**% of limit** counts all input, including cached input, plus output: OpenAI's prompt-caching guide states that cached input tokens still count toward TPM limits. The limiter also reserves `max_tokens` up front, so short bursts can still hit limits. Charts and throughput totals continue to include cached input; a filtered chart stacks uncached input, output, and cached input, and its limit line compares against the full stack.
 Some model families share one limit; utilization here is per model and does not aggregate shared families.
 
 ## Notes

@@ -27,7 +27,7 @@ struct OpenAIThroughputTests {
             now: Self.now)
         let throughput = try #require(result.usage.throughput)
         #expect(throughput.peakTokensPerMinute == 115)
-        #expect(throughput.models.first?.peakLimitCountedTokens == 55)
+        #expect(throughput.models.first?.peakLimitCountedTokens == 115)
         let swift = try await OpenAILiveUsageFetcher(transport: Transport(liveBody: body))
             .fetch(environment: ["OPENAI_ADMIN_KEY": "synthetic-admin-key"], now: Self.now)
         #expect(swift.throughput == throughput)
@@ -64,7 +64,7 @@ struct OpenAIThroughputTests {
         #expect(throughput.peakAt == Date(timeIntervalSince1970: 119_760))
         #expect(throughput.fiveMinuteAverageTokensPerMinute == 34_400_000)
         #expect(throughput.minutes.suffix(3).filter { !$0.isPending }.isEmpty)
-        #expect(throughput.models.first?.peakLimitCountedTokens == 4_600_000)
+        #expect(throughput.models.first?.peakLimitCountedTokens == 97_000_000)
         #expect(result.usage.openAIAPIUsage != nil)
         let swift = try await OpenAILiveUsageFetcher(transport: Transport(liveBody: Self.livePage))
             .fetch(
@@ -167,7 +167,7 @@ struct OpenAIThroughputTests {
     }
 
     @Test
-    func `top models are bounded and cached input does not inflate limit utilization`() throws {
+    func `top models are bounded and limit utilization includes cached input`() throws {
         let models = (1...7).map { index in
             OpenAILiveUsageSnapshot.ModelUsage(
                 name: "model-\(index)",
@@ -193,10 +193,11 @@ struct OpenAIThroughputTests {
             for: .model("model-7"),
             limits: limits))
         #expect(snapshot.summary(for: .model("model-7")).peakTPM == 71_000_000)
-        #expect(utilization.peakTPMPercent == 11.25)
-        #expect(utilization.latestTPMPercent == 11.25)
-        #expect(snapshot.highestUtilization(limits: limits)?.peakTPMPercent == 11.25)
-        #expect(snapshot.modelRows(limits: limits).first?.peakTPMPercent == 11.25)
+        // Cached input counts toward TPM: 71M of a 40M limit.
+        #expect(utilization.peakTPMPercent == 177.5)
+        #expect(utilization.latestTPMPercent == 177.5)
+        #expect(snapshot.highestUtilization(limits: limits)?.peakTPMPercent == 177.5)
+        #expect(snapshot.modelRows(limits: limits).first?.peakTPMPercent == 177.5)
     }
 
     @Test

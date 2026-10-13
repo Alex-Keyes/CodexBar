@@ -24,7 +24,8 @@ struct MenuCardThroughputTests {
         let limited = self.model(
             snapshot: snapshot,
             manual: manual)
-        #expect(limited.throughput?.presentation?.limitPercent == 11.5)
+        // Cached input counts toward TPM: a 97M peak of a 40M limit.
+        #expect(abs((limited.throughput?.presentation?.limitPercent ?? 0) - 242.5) < 0.001)
         #expect(limited.throughput?.presentation?.limitLine?.contains("97M") == true)
         #expect(limited.throughput?.presentation?.action == .openOpenAILiveUsage)
         #expect(plain.heightFingerprint(section: "usage") != limited.heightFingerprint(section: "usage"))

@@ -2601,7 +2601,7 @@
 "Latest tokens per minute (OpenAI Admin API)" = "Остання кількість токенів за хвилину (OpenAI Admin API)";
 "Fetches 1-minute usage each refresh for the menu card chart and the menu bar Tokens/min token." = "Під час кожного оновлення завантажує похвилинне використання для графіка в картці меню та елемента «Токени/хв» у рядку меню.";
 "Live Usage…" = "Використання наживо…";
-"% of limit counts uncached input + output; cached input appears not to count toward TPM. The limiter also reserves max_tokens up front, so short bursts can still hit limits." = "% ліміту враховує некешований ввід + вивід; кешований ввід, за спостереженнями, не враховується в TPM. Обмежувач також заздалегідь резервує max_tokens, тому короткі сплески все одно можуть досягати лімітів.";
+"% of limit counts all input, including cached input, plus output, as OpenAI's rate limiter does. The limiter also reserves max_tokens up front, so short bursts can still hit limits." = "% ліміту враховує весь ввід, зокрема кешований, + вивід, як і обмежувач швидкості OpenAI. Обмежувач також заздалегідь резервує max_tokens, тому короткі сплески все одно можуть досягати лімітів.";
 
 "Tokens / min graph" = "Графік токенів / хв";
 "Last hour of tokens per minute (OpenAI Admin API)" = "Токени за хвилину протягом останньої години (OpenAI Admin API)";

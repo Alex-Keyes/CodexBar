@@ -2579,7 +2579,7 @@
 "Latest tokens per minute (OpenAI Admin API)" = "最新每分鐘權杖數（OpenAI Admin API）";
 "Fetches 1-minute usage each refresh for the menu card chart and the menu bar Tokens/min token." = "每次重新整理時取得分鐘級使用量，用於選單卡片圖表和選單列的「權杖/分鐘」元素。";
 "Live Usage…" = "即時使用量…";
-"% of limit counts uncached input + output; cached input appears not to count toward TPM. The limiter also reserves max_tokens up front, so short bursts can still hit limits." = "限額百分比按未快取輸入 + 輸出計算；快取輸入似乎不計入 TPM。限流器還會預先保留 max_tokens，因此短暫突發仍可能觸及限額。";
+"% of limit counts all input, including cached input, plus output, as OpenAI's rate limiter does. The limiter also reserves max_tokens up front, so short bursts can still hit limits." = "限額百分比按全部輸入（含快取輸入）+ 輸出計算，與 OpenAI 的限流器一致。限流器還會預先保留 max_tokens，因此短暫突發仍可能觸及限額。";
 
 "Tokens / min graph" = "Token / 分鐘圖表";
 "Last hour of tokens per minute (OpenAI Admin API)" = "過去一小時的每分鐘 Token 數（OpenAI Admin API）";

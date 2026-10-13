@@ -44,8 +44,9 @@ public struct OpenAILiveUsageSnapshot: Sendable, Equatable {
         public let requests: Int
         public let isInProgress: Bool
         public let isPending: Bool
+        /// OpenAI's rate limiter counts cached input toward TPM, so utilization uses every billed token.
         public var limitCountedTokens: Int {
-            self.uncachedInputTokens + self.outputTokens
+            self.totalTokens
         }
     }
 

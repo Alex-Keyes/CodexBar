@@ -148,7 +148,7 @@ struct OpenAILiveUsageChart: View {
                         minute: point.start,
                         label: L("Cached input"),
                         tokens: point.cachedInputTokens,
-                        baseline: point.limitCountedTokens),
+                        baseline: point.uncachedInputTokens + point.outputTokens),
                 ]
             }
         }

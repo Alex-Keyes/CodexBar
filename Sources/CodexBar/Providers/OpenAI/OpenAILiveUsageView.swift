@@ -222,7 +222,7 @@ struct OpenAILiveUsageView: View {
             if let error = self.model.limitsError {
                 Text(L("Project caps unavailable")).help(error)
             }
-            Text(L("% of limit counts uncached input + output; cached input appears not to count toward TPM. " +
+            Text(L("% of limit counts all input, including cached input, plus output, as OpenAI's rate limiter does. " +
                     "The limiter also reserves max_tokens up front, so short bursts can still hit limits."))
         }
         .font(.caption)

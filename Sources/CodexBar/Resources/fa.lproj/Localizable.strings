@@ -2605,7 +2605,7 @@
 "Latest tokens per minute (OpenAI Admin API)" = "آخرین تعداد توکن در دقیقه (OpenAI Admin API)";
 "Fetches 1-minute usage each refresh for the menu card chart and the menu bar Tokens/min token." = "در هر نوسازی، مصرف دقیقه‌ای را برای نمودار کارت منو و عنصر توکن/دقیقه در نوار منو دریافت می‌کند.";
 "Live Usage…" = "مصرف زنده…";
-"% of limit counts uncached input + output; cached input appears not to count toward TPM. The limiter also reserves max_tokens up front, so short bursts can still hit limits." = "درصد سقف، ورودی بدون کش + خروجی را حساب می‌کند؛ ظاهراً ورودی کش‌شده در TPM محاسبه نمی‌شود. محدودکننده max_tokens را نیز از پیش رزرو می‌کند، بنابراین جهش‌های کوتاه همچنان ممکن است به سقف برسند.";
+"% of limit counts all input, including cached input, plus output, as OpenAI's rate limiter does. The limiter also reserves max_tokens up front, so short bursts can still hit limits." = "درصد سقف، کل ورودی از جمله ورودی کش‌شده + خروجی را حساب می‌کند، همان‌طور که محدودکنندهٔ نرخ OpenAI انجام می‌دهد. محدودکننده max_tokens را نیز از پیش رزرو می‌کند، بنابراین جهش‌های کوتاه همچنان ممکن است به سقف برسند.";
 
 "Tokens / min graph" = "نمودار توکن / دقیقه";
 "Last hour of tokens per minute (OpenAI Admin API)" = "توکن در دقیقه در ساعت گذشته (OpenAI Admin API)";
