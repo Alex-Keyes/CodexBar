@@ -50,6 +50,19 @@ struct OpenAIOrgRateLimitsTests {
     }
 
     @Test
+    func `projects without a status are treated as active`() async throws {
+        let transport = Transport(pages: [
+            Self.page(#"{"id":"proj_a"},{"id":"proj_b","status":null},{"id":"proj_c","status":"archived"}"#),
+            Self.page(Self.limit("gpt-5", tpm: 100, rpm: 2)),
+            Self.page(Self.limit("gpt-5", tpm: 300, rpm: 4)),
+        ])
+        let result = try await OpenAIOrgRateLimitsFetcher(transport: transport).fetch(
+            environment: Self.environment, now: Self.now)
+        #expect(result.projectsSampled == 2)
+        #expect(result.byModel["gpt-5"] == .init(tokensPerMinute: 300, requestsPerMinute: 4))
+    }
+
+    @Test
     func `project sample truncates at twenty five active projects`() async throws {
         let projects = (0..<30).map { #"{"id":"proj_\#($0)","status":"active"}"# }.joined(separator: ",")
         let transport = Transport(pages: [Self.page(projects)] + Array(repeating: Self.page(""), count: 25))

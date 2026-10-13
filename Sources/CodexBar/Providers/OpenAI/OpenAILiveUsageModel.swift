@@ -53,6 +53,7 @@ final class OpenAILiveUsageModel {
     @ObservationIgnored private var limitsRequestID = UUID()
     @ObservationIgnored private var limitsLastAttempt: Date?
     @ObservationIgnored @ProcessEnvironment private var limitsEnvironment: [String: String]?
+    @ObservationIgnored @ProcessEnvironment private var usageEnvironment: [String: String]?
 
     var limits: OpenAIOrgLimitResolver {
         OpenAIOrgLimitResolver(manual: self.manualLimits(), projectCaps: self.projectCaps)
@@ -113,6 +114,8 @@ final class OpenAILiveUsageModel {
     func refresh(manual: Bool = true) {
         guard self.isActive else { return }
         self.refreshLimits(manual: manual)
+        let environment = self.environment()
+        self.resetIfScopeChanged(environment)
         self.pollingTask?.cancel()
         self.pollingTask = nil
         self.nextRefreshAt = nil
@@ -122,7 +125,6 @@ final class OpenAILiveUsageModel {
         }
         self.refreshPending = false
         self.isLoading = true
-        let environment = self.environment()
         let minutes = self.windowMinutes
         let generation = self.generation
         let fetch = self.fetch
@@ -159,6 +161,21 @@ final class OpenAILiveUsageModel {
                 self.scheduleNextRefresh()
             }
         }
+    }
+
+    /// A different account, key, or project is a different data scope: drop the previous organization's usage and
+    /// model filter, and invalidate any in-flight fetch so its result cannot land in the new scope.
+    private func resetIfScopeChanged(_ environment: [String: String]) {
+        defer { self.usageEnvironment = environment }
+        guard let previous = self.usageEnvironment, previous != environment else { return }
+        self.generation += 1
+        self.snapshot = nil
+        self.lastUpdated = nil
+        self.lastError = nil
+        self.isMissingCredential = false
+        self.isRateLimited = false
+        self.filter = .allModels
+        self.pollingInterval = OpenAILiveUsagePolling.interval(after: nil, previous: self.pollingInterval)
     }
 
     func waitForRefresh() async {

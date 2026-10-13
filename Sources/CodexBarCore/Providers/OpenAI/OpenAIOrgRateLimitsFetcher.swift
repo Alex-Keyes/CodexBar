@@ -36,7 +36,8 @@ public struct OpenAIOrgRateLimitsFetcher: Sendable {
             path: "/v1/organization/projects",
             credential: credential,
             maximumItems: 25,
-            include: { $0.status == "active" })
+            // The schema allows a missing or null status; archived projects are already excluded by default.
+            include: { ($0.status ?? "active") == "active" })
         var limits: [String: OpenAIOrgRateLimits.Limit] = [:]
         // Deliberately organization-wide: credential.projectID never scopes this discovery.
         for project in projects.0 {
@@ -110,7 +111,7 @@ public struct OpenAIOrgRateLimitsFetcher: Sendable {
 
 private struct Project: Decodable, Sendable {
     let id: String
-    let status: String
+    let status: String?
 }
 
 private struct RateLimit: Decodable, Sendable {

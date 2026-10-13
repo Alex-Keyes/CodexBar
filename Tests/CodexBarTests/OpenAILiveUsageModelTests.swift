@@ -28,6 +28,28 @@ struct OpenAILiveUsageModelTests {
     }
 
     @Test
+    func `switching credentials drops the previous organization's usage and filter`() async {
+        let source = Source()
+        var environment = ["OPENAI_ADMIN_KEY": "first-org-key"]
+        let model = OpenAILiveUsageModel(environment: { environment }, fetch: { _, minutes in
+            try await source.fetch(minutes: minutes)
+        })
+        model.start()
+        await model.waitForRefresh()
+        #expect(model.snapshot != nil)
+        model.filter = .model("first-org-model")
+        environment["OPENAI_ADMIN_KEY"] = "second-org-key"
+        await source.setError(.apiFailure(500))
+        model.refresh()
+        #expect(model.snapshot == nil)
+        #expect(model.filter == .allModels)
+        await model.waitForRefresh()
+        #expect(model.snapshot == nil)
+        #expect(model.lastError != nil)
+        model.stop()
+    }
+
+    @Test
     func `failed refresh preserves snapshot and backs off until success`() async {
         let source = Source()
         let model = OpenAILiveUsageModel(environment: { [:] }, fetch: { _, minutes in
