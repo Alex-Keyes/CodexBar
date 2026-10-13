@@ -214,6 +214,30 @@ struct OpenAILiveUsageTests {
     }
 
     @Test
+    func `model ranking ignores pending-only volume for the top series`() {
+        // Six models report at minute 8; a seventh only has a large partial bucket in the in-progress minute.
+        var active: [Int: [(String, Int)]] = [8: (1...6).map { ("model-\($0)", 100 - $0) }]
+        active[14] = [("pending-model", 10000)]
+        let snapshot = OpenAILiveUsageSnapshot(
+            minutes: (0..<15).map { index in
+                .init(
+                    start: Date(timeIntervalSince1970: 119_160 + Double(index) * 60),
+                    models: (active[index] ?? []).map { name, tokens in
+                        .init(name: name, inputTokens: tokens, cachedInputTokens: 0, outputTokens: 0, requests: 1)
+                    })
+            },
+            windowMinutes: 15,
+            fetchedAt: Self.now,
+            projectID: nil)
+        #expect(snapshot.modelNames.prefix(5) == ["model-1", "model-2", "model-3", "model-4", "model-5"])
+        #expect(snapshot.modelNames.last == "pending-model")
+        let topSeries = Set(snapshot.stackedByModel().map(\.modelOrOther))
+        #expect(topSeries.contains("model-5"))
+        #expect(!topSeries.contains("pending-model"))
+        #expect(snapshot.throughput.models.first?.name == "model-1")
+    }
+
+    @Test
     func `reporting frontier resets to real zeros after ten idle minutes`() {
         let snapshot = Self.frontierSnapshot(activeMinutes: [3: ("model-a", 100)])
         #expect(snapshot.reportingFrontier == snapshot.minutes[13].start)

@@ -95,14 +95,23 @@ public struct OpenAILiveUsageSnapshot: Sendable, Equatable {
         self.projectID = projectID
     }
 
+    /// Ranked by reported (non-pending) volume so hidden partial buckets cannot evict visible models from
+    /// the top series; pending-only volume, then the name, break ties.
     public var modelNames: [String] {
+        let frontier = self.reportingFrontier
+        var reported: [String: Int] = [:]
         var totals: [String: Int] = [:]
         for minute in self.minutes {
+            let isReported = frontier.map { minute.start <= $0 } ?? false
             for model in minute.models {
                 totals[model.name, default: 0] += model.totalTokens
+                if isReported { reported[model.name, default: 0] += model.totalTokens }
             }
         }
         return totals.keys.sorted {
+            let leftReported = reported[$0, default: 0]
+            let rightReported = reported[$1, default: 0]
+            if leftReported != rightReported { return leftReported > rightReported }
             let left = totals[$0, default: 0]
             let right = totals[$1, default: 0]
             return left == right ? $0 < $1 : left > right
