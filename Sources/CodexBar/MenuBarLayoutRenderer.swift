@@ -902,32 +902,6 @@ final class MenuBarLayoutRenderer {
         }
     }
 
-    private static func sparklineToken(
-        data: MenuBarLayoutRenderData,
-        style: TokenStyle,
-        options: MenuBarLayoutRenderOptions)
-        -> (value: NSAttributedString, accessibilityText: String?)
-    {
-        guard let graph = data.tokensSparkline,
-              let image = graph.image(height: style.iconHeight, highlighted: options.isHighlighted)
-        else {
-            return self.textToken(
-                self.missingValue,
-                accessibilityText: L("%@ unavailable", L("Tokens / min graph")),
-                attributes: style.attributes)
-        }
-        let attachment = NSTextAttachment()
-        attachment.image = Self.attachmentImage(image, tint: style.foregroundColor)
-        attachment.bounds = NSRect(
-            x: 0,
-            y: ((style.font.capHeight - style.iconHeight) / 2).rounded(),
-            width: image.size.width,
-            height: style.iconHeight)
-        let value = NSMutableAttributedString(attachment: attachment)
-        value.addAttributes(style.attributes, range: NSRange(location: 0, length: value.length))
-        return (value, L("Tokens per minute, latest %@", graph.latest.map(ProviderThroughputSection.count) ?? "—"))
-    }
-
     private static func lanePercentToken(
         _ lane: MenuBarLayoutLane,
         data: MenuBarLayoutRenderData,
@@ -1205,6 +1179,32 @@ final class MenuBarLayoutRenderer {
 }
 
 extension MenuBarLayoutRenderer {
+    private static func sparklineToken(
+        data: MenuBarLayoutRenderData,
+        style: TokenStyle,
+        options: MenuBarLayoutRenderOptions)
+        -> (value: NSAttributedString, accessibilityText: String?)
+    {
+        guard let graph = data.tokensSparkline,
+              let image = graph.image(height: style.iconHeight, highlighted: options.isHighlighted)
+        else {
+            return self.textToken(
+                self.missingValue,
+                accessibilityText: L("%@ unavailable", L("Tokens / min graph")),
+                attributes: style.attributes)
+        }
+        let attachment = NSTextAttachment()
+        attachment.image = Self.attachmentImage(image, tint: style.foregroundColor)
+        attachment.bounds = NSRect(
+            x: 0,
+            y: ((style.font.capHeight - style.iconHeight) / 2).rounded(),
+            width: image.size.width,
+            height: style.iconHeight)
+        let value = NSMutableAttributedString(attachment: attachment)
+        value.addAttributes(style.attributes, range: NSRange(location: 0, length: value.length))
+        return (value, L("Tokens per minute, latest %@", graph.latest.map(ProviderThroughputSection.count) ?? "—"))
+    }
+
     /// Graphical progress bar for one semantic window, embedded as an `NSTextAttachment` so the
     /// status-item title keeps surrounding countdown text in the same line. The bar is a pre-tinted
     /// bitmap (AppKit does not template-tint attachments), so it is cached by fill/style like the
