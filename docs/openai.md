@@ -112,8 +112,9 @@ Use **Limits…** or **Set org limit…** to open Settings → Providers → Ope
 Copy the limits from the [organization Limits page](https://platform.openai.com/settings/organization/limits).
 Enter a model ID, positive TPM, and optional positive RPM. The editor accepts numbers such as `40000000`,
 `40,000,000`, `40M`, `150k`, and `1.5M`. Invalid edits remain local until valid. Manual entries apply immediately
-to an open window. Manual limits and project caps each match exact model IDs first, then the longest ID followed
-by a hyphen. Thus `gpt-4o-mini` matches `gpt-4o-mini-2024-07-18`, while `gpt-4` does not match `gpt-4o`.
+to an open window. Manual limits and project caps each match exact model IDs first, then a family ID followed by a dated snapshot
+suffix (`-YYYY-MM-DD`, or the older `-MMDD`). Thus `gpt-4o-mini` matches `gpt-4o-mini-2024-07-18`, while `gpt-5`
+does not match the distinct model `gpt-5-mini` and `gpt-4` does not match `gpt-4o`.
 
 Project caps are fetched when the window opens, then at most every 15 minutes. Refresh refetches them only if the
 last attempt is older than 5 minutes. Permission, rate-limit, and network failures leave usage and its polling

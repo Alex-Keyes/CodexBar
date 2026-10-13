@@ -49,8 +49,16 @@ public struct OpenAIOrgLimitResolver: Sendable {
         -> OpenAIOrgRateLimits.Limit?
     {
         if let exact = limits[model] { return exact }
-        let family = limits.keys.filter { model.hasPrefix($0 + "-") }.max { $0.count < $1.count }
+        // Only dated snapshots inherit a family limit (gpt-5 covers gpt-5-2025-08-07, gpt-4 covers gpt-4-0613);
+        // distinct models such as gpt-5-mini have their own limits.
+        let family = limits.keys.filter { key in
+            model.hasPrefix(key + "-") && Self.isSnapshotSuffix(model.dropFirst(key.count + 1))
+        }.max { $0.count < $1.count }
         return family.flatMap { limits[$0] }
+    }
+
+    private static func isSnapshotSuffix(_ suffix: Substring) -> Bool {
+        suffix.wholeMatch(of: /\d{4}-\d{2}-\d{2}|\d{4}/) != nil
     }
 }
 

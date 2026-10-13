@@ -160,7 +160,7 @@ struct OpenAIOrgRateLimitsTests {
     }
 
     @Test
-    func `manual org limits and project caps match independently by exact then longest family`() {
+    func `manual org limits and project caps match independently by exact then dated snapshot family`() {
         let projectCaps = OpenAIOrgRateLimits(
             byModel: [
                 "gpt-5-2025-08-07": .init(tokensPerMinute: 1000),
@@ -185,9 +185,15 @@ struct OpenAIOrgRateLimitsTests {
             .init(model: "gpt-4o-mini-2024-07-18", tokensPerMinute: 4),
         ], projectCaps: nil)
         #expect(manual.resolve("gpt-4o-mini-2024-07-18")?.tokensPerMinute == 4)
-        #expect(manual.resolve("gpt-4o-mini-next")?.tokensPerMinute == 3)
+        #expect(manual.resolve("gpt-4o-mini-next") == nil)
+        #expect(manual.resolve("gpt-4-0613")?.tokensPerMinute == 1)
         #expect(OpenAIOrgLimitResolver(manual: [.init(model: "gpt-4", tokensPerMinute: 1)], projectCaps: nil)
             .resolve("gpt-4o-mini") == nil)
+        // A family limit covers dated snapshots only, never distinct sibling models.
+        let gpt5 = OpenAIOrgLimitResolver(manual: [.init(model: "gpt-5", tokensPerMinute: 100)], projectCaps: nil)
+        #expect(gpt5.resolve("gpt-5-mini") == nil)
+        #expect(gpt5.resolve("gpt-5-mini-2025-08-07") == nil)
+        #expect(gpt5.resolve("gpt-5-2025-08-07")?.tokensPerMinute == 100)
     }
 
     @Test
