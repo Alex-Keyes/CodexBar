@@ -78,6 +78,7 @@ struct ProviderThroughputContent: View {
                     Button(L("Live Usage…")) { self.openDetails() }
                         .buttonStyle(.plain).font(.caption)
                         .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
+                        .menuCardInteractiveControl()
                 }
             }
             MenuUsageBarStrip(
@@ -88,6 +89,8 @@ struct ProviderThroughputContent: View {
                 .frame(height: 44)
                 .contentShape(Rectangle())
                 .onTapGesture { self.openDetails() }
+                // Register the chart so rows with their own click (Overview) forward this tap to it.
+                .menuCardInteractiveControl(isEnabled: self.section.presentation?.action != nil)
                 .accessibilityLabel(L("Tokens per minute"))
             // One line in both states so hovering never changes the hosted menu row height.
             Text(self.points.first { $0.id == self.selection.wrappedValue }?.hoverSummary ?? self.section.summaryLine)
@@ -115,5 +118,13 @@ struct ProviderThroughputContent: View {
         if percent >= 95 { return .red }
         if percent >= 80 { return .orange }
         return .secondary
+    }
+}
+
+extension UsageMenuCardView.Model {
+    /// Rows with their own click (Overview) must forward presses that land on these hosted controls.
+    var containsInteractiveControls: Bool {
+        self.showsChartSwitch || self.throughput?.presentation?.action != nil
+            || self.subtitleStyle == .error || self.usesLiveSubtitle
     }
 }

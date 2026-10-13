@@ -12,7 +12,7 @@ struct MenuBarLayoutThroughputTests {
         let blobs = try MenuBarLayoutPersistence.encoded(layout)
         let decoder = JSONDecoder()
         #expect(try decoder.decode(MenuBarLayout.self, from: blobs.current) == layout)
-        for blob in [blobs.legacy, blobs.released, blobs.v3] {
+        for blob in [blobs.legacy, blobs.released, blobs.v3, blobs.v4] {
             #expect(try decoder.decode(MenuBarLayout.self, from: blob) == .init(lines: [[.icon, .costToday]]))
             let text = try #require(String(data: blob, encoding: .utf8))
             #expect(!text.contains("tokensPerMinute"))
@@ -26,6 +26,38 @@ struct MenuBarLayoutThroughputTests {
         #expect(MenuBarLayoutPaletteTokens.conditionalBranch.contains(.tokensSparkline))
         #expect(MenuBarLayoutPaletteTokens.usage(provider: .openai, snapshot: nil).contains(.tokensSparkline))
         #expect(MenuBarLayoutToken.tokensSparkline.editorLabel(provider: .openai) == L("Tokens / min graph"))
+    }
+
+    @Test
+    func `the v4 generation stays readable and the newer layout and rules win on load`() throws {
+        let decoder = JSONDecoder()
+        let layout = MenuBarLayout(lines: [[.icon, .tokensPerMinute, .tokensSparkline, .costToday]])
+        let blobs = try MenuBarLayoutPersistence.encoded(layout)
+        let restored = try MenuBarLayoutPersistence.preferredLayout(
+            current: decoder.decode(MenuBarLayout.self, from: blobs.current),
+            v4: decoder.decode(MenuBarLayout.self, from: blobs.v4),
+            v3: decoder.decode(MenuBarLayout.self, from: blobs.v3),
+            released: decoder.decode(MenuBarLayout.self, from: blobs.released),
+            legacy: decoder.decode(MenuBarLayout.self, from: blobs.legacy))
+        #expect(restored == layout)
+
+        var library = MenuBarLayoutConditional.shippedLibrary()
+        library[0].thenToken = .tokensPerMinute
+        library[0].elseToken = .tokensSparkline
+        let rules = try MenuBarLayoutPersistence.encodedLibrary(library)
+        let v4Text = try #require(String(data: rules.v4, encoding: .utf8))
+        #expect(!v4Text.contains("tokensPerMinute"))
+        #expect(!v4Text.contains("tokensSparkline"))
+        let v4Rules = try decoder.decode([MenuBarLayoutConditional].self, from: rules.v4)
+        #expect(v4Rules[0].thenToken == .hidden)
+        #expect(v4Rules[0].elseToken == .hidden)
+        let restoredRules = try MenuBarLayoutPersistence.preferredLibrary(
+            current: decoder.decode([MenuBarLayoutConditional].self, from: rules.current),
+            v4: v4Rules,
+            v3: decoder.decode([MenuBarLayoutConditional].self, from: rules.v3),
+            released: decoder.decode([MenuBarLayoutConditional].self, from: rules.released),
+            legacy: decoder.decode([MenuBarLayoutConditional].self, from: rules.legacy))
+        #expect(restoredRules == library)
     }
 
     @Test

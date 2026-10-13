@@ -549,9 +549,21 @@ enum MenuBarLayoutToken: Codable, Hashable, Sendable {
     }
 
     /// Keep the selected window readable without putting a new discriminator in the V4 keys.
+    /// Tokens-per-minute postdate V4: as a conditional branch they render nothing in older releases.
     var v4Compatible: MenuBarLayoutToken {
-        if case let .progressBar(window) = self { return .percent(window: window) }
-        return self
+        switch self {
+        case let .progressBar(window): .percent(window: window)
+        case .tokensPerMinute, .tokensSparkline: .hidden
+        default: self
+        }
+    }
+
+    /// V4 layouts drop tokens that postdate it instead of leaving hidden placeholders in a line.
+    var hasV4Representation: Bool {
+        switch self {
+        case .tokensPerMinute, .tokensSparkline: false
+        default: true
+        }
     }
 
     /// Tokens without an older representation are dropped after mapping graphical bars to percentages.
@@ -777,7 +789,7 @@ struct MenuBarLayout: Codable, Hashable, Sendable {
     }
 
     func v4Compatible() -> MenuBarLayout {
-        self.projected { $0.v4Compatible }
+        self.projected { $0.hasV4Representation ? $0.v4Compatible : nil }
     }
 
     /// Preserve v0.56.8 tokens, dropping reset selections and named extras that release cannot decode.

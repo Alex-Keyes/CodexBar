@@ -173,6 +173,21 @@ struct MenuCardThroughputTests {
         }
     }
 
+    @Test
+    func `rows with a live chart forward chart presses even without the switch`() async throws {
+        let live = try await OpenAIThroughputTests.mappedLive(
+            OpenAIThroughputTests.liveSource(OpenAIThroughputTests.livePayload),
+            engine: .quickJS)
+        let withChart = self.model(snapshot: UsageSnapshot(
+            primary: nil,
+            secondary: nil,
+            throughput: live.throughput,
+            updatedAt: OpenAIThroughputTests.now))
+        #expect(!withChart.showsChartSwitch)
+        #expect(withChart.containsInteractiveControls)
+        #expect(!self.model(snapshot: nil).containsInteractiveControls)
+    }
+
     private func model(
         snapshot: UsageSnapshot?,
         manual: [ProviderModelRateLimit] = []) -> UsageMenuCardView.Model
