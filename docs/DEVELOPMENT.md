@@ -684,7 +684,7 @@ are checked without following them; reuse requires each package link to name a r
 in both snapshots, whose contents are verified separately. External, untracked, chained and directory
 targets, including noncanonical paths that could conceal a symlink ancestor, require clean products
 without reading or modifying the target. Only successful main jobs with a clean tracked tree
-save new snapshots, and cleanup keeps one snapshot per lane. The first main run seeds the cache;
+save new snapshots, and cleanup keeps one snapshot per active lane and deletes retired lanes. The first main run seeds the cache;
 a cache miss or a changed input graph still requires a cold build.
 
 The adapter includes both public and private platform framework search paths and disables Swift
