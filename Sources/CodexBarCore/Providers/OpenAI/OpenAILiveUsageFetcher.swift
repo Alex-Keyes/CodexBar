@@ -191,3 +191,18 @@ private struct Result: Decodable {
             requests: self.requests)
     }
 }
+
+/// Which credential and project a resolved environment points at; other settings in the environment (such as
+/// OPENAI_LIVE_MINUTES) never change it. The key is kept only as a process-local digest.
+public struct OpenAILiveUsageScope: Equatable, Sendable {
+    private let credentialDigest: Int
+    private let projectID: String?
+
+    public init?(environment: [String: String]) {
+        guard let credential = OpenAIAPIUsageCredential(environment: environment) else { return nil }
+        var hasher = Hasher()
+        hasher.combine(credential.apiKey)
+        self.credentialDigest = hasher.finalize()
+        self.projectID = credential.projectID
+    }
+}

@@ -50,6 +50,33 @@ struct OpenAILiveUsageModelTests {
     }
 
     @Test
+    func `non-scope settings keep live usage and project caps`() async {
+        let source = Source()
+        let limitCalls = CallCounter()
+        var environment = ["OPENAI_ADMIN_KEY": "org-key", "OPENAI_LIVE_MINUTES": "60"]
+        let model = OpenAILiveUsageModel(
+            environment: { environment },
+            fetchLimits: { _ in
+                await limitCalls.increment()
+                return OpenAIOrgRateLimits(byModel: [:], projectsSampled: 1, truncated: false, fetchedAt: Date())
+            },
+            fetch: { _, minutes in try await source.fetch(minutes: minutes) })
+        model.start()
+        await model.waitForRefresh()
+        await model.waitForLimitsRefresh()
+        model.filter = .model("kept-model")
+        environment["OPENAI_LIVE_MINUTES"] = "0"
+        model.refresh()
+        await model.waitForRefresh()
+        await model.waitForLimitsRefresh()
+        #expect(model.snapshot != nil)
+        #expect(model.filter == .model("kept-model"))
+        #expect(model.projectCaps != nil)
+        #expect(await limitCalls.count == 1)
+        model.stop()
+    }
+
+    @Test
     func `failed refresh preserves snapshot and backs off until success`() async {
         let source = Source()
         let model = OpenAILiveUsageModel(environment: { [:] }, fetch: { _, minutes in
@@ -170,6 +197,14 @@ struct OpenAILiveUsageModelTests {
             self.pending?.resume(returning: .init(
                 minutes: [], windowMinutes: self.ranges.last ?? 60, fetchedAt: Date(), projectID: nil))
             self.pending = nil
+        }
+    }
+
+    private actor CallCounter {
+        private(set) var count = 0
+
+        func increment() {
+            self.count += 1
         }
     }
 

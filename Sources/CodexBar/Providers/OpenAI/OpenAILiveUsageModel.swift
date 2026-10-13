@@ -52,8 +52,9 @@ final class OpenAILiveUsageModel {
     @ObservationIgnored private var limitsTask: Task<Void, Never>?
     @ObservationIgnored private var limitsRequestID = UUID()
     @ObservationIgnored private var limitsLastAttempt: Date?
-    @ObservationIgnored @ProcessEnvironment private var limitsEnvironment: [String: String]?
-    @ObservationIgnored @ProcessEnvironment private var usageEnvironment: [String: String]?
+    /// Outer nil: not observed yet. Inner nil: no credential resolved.
+    @ObservationIgnored private var limitsScope: OpenAILiveUsageScope??
+    @ObservationIgnored private var usageScope: OpenAILiveUsageScope??
 
     var limits: OpenAIOrgLimitResolver {
         OpenAIOrgLimitResolver(manual: self.manualLimits(), projectCaps: self.projectCaps)
@@ -166,8 +167,9 @@ final class OpenAILiveUsageModel {
     /// A different account, key, or project is a different data scope: drop the previous organization's usage and
     /// model filter, and invalidate any in-flight fetch so its result cannot land in the new scope.
     private func resetIfScopeChanged(_ environment: [String: String]) {
-        defer { self.usageEnvironment = environment }
-        guard let previous = self.usageEnvironment, previous != environment else { return }
+        let scope = OpenAILiveUsageScope(environment: environment)
+        defer { self.usageScope = .some(scope) }
+        guard let previous = self.usageScope, previous != scope else { return }
         self.generation += 1
         self.snapshot = nil
         self.lastUpdated = nil
@@ -188,14 +190,15 @@ final class OpenAILiveUsageModel {
 
     private func refreshLimits(manual: Bool) {
         let environment = self.environment()
-        if self.limitsEnvironment != environment {
+        let scope = OpenAILiveUsageScope(environment: environment)
+        if self.limitsScope != .some(scope) {
             self.limitsTask?.cancel()
             self.limitsTask = nil
             self.limitsRequestID = UUID()
             self.projectCaps = nil
             self.limitsError = nil
             self.limitsLastAttempt = nil
-            self.limitsEnvironment = environment
+            self.limitsScope = .some(scope)
         }
         guard self.limitsTask == nil,
               OpenAILiveUsageLimitsPolicy.shouldFetch(
