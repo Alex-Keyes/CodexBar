@@ -165,12 +165,17 @@ defineProvider({
           if (entries > 10000) throw new Error("Too many live models");
           const models = raw.results.map((item) => {
             if (!item || typeof item !== "object" || Array.isArray(item)) throw new Error("Invalid live model");
-            const inputTokens = integer(item.input_tokens, "input_tokens", true) || 0;
+            // Text and audio are reported separately; fold audio in like the daily totals do.
+            const inputTokens =
+              (integer(item.input_tokens, "input_tokens", true) || 0) +
+              (integer(item.input_audio_tokens, "input_audio_tokens", true) || 0);
             const cachedInputTokens = integer(item.input_cached_tokens, "input_cached_tokens", true) || 0;
-            const outputTokens = integer(item.output_tokens, "output_tokens", true) || 0;
+            const outputTokens =
+              (integer(item.output_tokens, "output_tokens", true) || 0) +
+              (integer(item.output_audio_tokens, "output_audio_tokens", true) || 0);
             const requests = integer(item.num_model_requests, "num_model_requests", true) || 0;
-            integer(item.input_audio_tokens, "input_audio_tokens", true);
-            integer(item.output_audio_tokens, "output_audio_tokens", true);
+            if (!Number.isSafeInteger(inputTokens) || !Number.isSafeInteger(outputTokens))
+              throw new Error("Unsafe live tokens");
             if (cachedInputTokens > inputTokens) throw new Error("Invalid cached tokens");
             totalTokens += inputTokens + outputTokens;
             totalRequests += requests;

@@ -176,7 +176,10 @@ private struct Result: Decodable {
 
     func validate() throws {
         guard [self.input, self.cached, self.output, self.requests, self.inputAudio, self.outputAudio]
-            .allSatisfy({ $0 >= 0 }), self.cached <= self.input
+            .allSatisfy({ $0 >= 0 }),
+            !self.input.addingReportingOverflow(self.inputAudio).overflow,
+            !self.output.addingReportingOverflow(self.outputAudio).overflow,
+            self.cached <= self.input + self.inputAudio
         else { throw OpenAILiveUsageError.parseFailure }
     }
 
@@ -184,9 +187,10 @@ private struct Result: Decodable {
         let name = self.model?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return .init(
             name: name.isEmpty ? "unknown" : name,
-            inputTokens: self.input,
+            // Text and audio are reported separately; fold audio in like the daily totals do.
+            inputTokens: self.input + self.inputAudio,
             cachedInputTokens: self.cached,
-            outputTokens: self.output,
+            outputTokens: self.output + self.outputAudio,
             requests: self.requests)
     }
 }

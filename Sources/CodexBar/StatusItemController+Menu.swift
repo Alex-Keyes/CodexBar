@@ -1297,14 +1297,6 @@ extension StatusItemController {
                 layoutModel: layoutModel,
                 bottomPadding: bottomPadding,
                 width: width)
-                .environment(\.providerCardAction, ProviderCardAction(perform: { [weak self, weak menu] action in
-                    guard let self else { return }
-                    menu?.cancelTracking()
-                    let (selector, object) = self.selector(for: action)
-                    let sender = NSMenuItem()
-                    sender.representedObject = object
-                    NSApp.sendAction(selector, to: self, from: sender)
-                }))
             let usageSubmenu = self.makeUsageSubmenu(
                 provider: provider,
                 webItems: webItems,
