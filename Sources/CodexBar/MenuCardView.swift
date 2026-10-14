@@ -49,6 +49,7 @@ struct UsageMenuCardView: View {
             let workdayTickAppearance: WorkdayTickAppearance
             let cardStyle: Bool
             var sessionEquivalentDetail: UsagePaceText.SessionEquivalentDetail?
+            var helpText: String?
 
             init(
                 id: String,
@@ -179,6 +180,7 @@ struct UsageMenuCardView: View {
         var providerDetails: [ProviderDetailSection] = []
         /// Provider-owned titles remain stable when the displayed sections are localized or redacted.
         var providerDetailRawTitles: [String?] = []
+        var throughput: ProviderThroughputSection?
         let openAIAPIUsage: OpenAIAPIUsageSnapshot?
         let inlineUsageDashboard: InlineUsageDashboardModel?
         var creditsText: String?
@@ -223,8 +225,20 @@ struct UsageMenuCardView: View {
             }
 
             if !liveModel.usesStackedDetailLayout {
+                if liveModel.showsChartSwitch, let throughput = liveModel.throughput,
+                   let dashboard = liveModel.inlineUsageDashboard
+                {
+                    ProviderMenuChartContent(
+                        provider: liveModel.provider.instanceID,
+                        throughput: throughput,
+                        dashboard: dashboard,
+                        color: liveModel.progressColor)
+                        .id(liveModel.provider.instanceID)
+                } else if let throughput = liveModel.throughput {
+                    ProviderThroughputContent(section: throughput, color: liveModel.progressColor)
+                }
                 if let dashboard = liveModel.inlineUsageDashboard {
-                    InlineUsageDashboardContent(model: dashboard)
+                    InlineUsageDashboardContent(model: dashboard, showsChart: !liveModel.showsChartSwitch)
                 } else if !liveModel.usageNotes.isEmpty {
                     UsageNotesContent(notes: liveModel.usageNotes)
                 } else if let placeholder = liveModel.placeholder {
@@ -678,8 +692,20 @@ private struct UsageMenuCardUsageContentView: View {
 
     @ViewBuilder
     private var supplementalContent: some View {
+        if self.model.showsChartSwitch, let throughput = self.model.throughput,
+           let dashboard = self.model.inlineUsageDashboard
+        {
+            ProviderMenuChartContent(
+                provider: self.model.provider.instanceID,
+                throughput: throughput,
+                dashboard: dashboard,
+                color: self.model.progressColor)
+                .id(self.model.provider.instanceID)
+        } else if let throughput = self.model.throughput {
+            ProviderThroughputContent(section: throughput, color: self.model.progressColor)
+        }
         if let dashboard = self.model.inlineUsageDashboard {
-            InlineUsageDashboardContent(model: dashboard)
+            InlineUsageDashboardContent(model: dashboard, showsChart: !self.model.showsChartSwitch)
             if self.model.quotaSubscriptionNotes.isEmpty, !self.model.subscriptionNotes.isEmpty {
                 UsageNotesContent(notes: self.model.subscriptionNotes)
             }
@@ -898,6 +924,7 @@ extension UsageMenuCardView.Model {
             style: providerCostStyle,
             isClaudeAdminAPI: isClaudeAdminAPI) && !menuCard.providerCostIsRequiredUsage
         let providerCost: ProviderCostSection? = if !showsProviderCost ||
+            metrics.contains(where: { $0.id == "claude-extra-usage" }) ||
             (providerCostFollowsSummaryStyle && !input.costSummaryInlineEnabled)
         {
             nil
@@ -950,6 +977,9 @@ extension UsageMenuCardView.Model {
             subscriptionNotes: Self.subscriptionMetadataNotes(snapshot: input.snapshot, provider: input.provider),
             providerDetails: providerDetails.sections,
             providerDetailRawTitles: providerDetails.rawTitles,
+            throughput: input.snapshot?.throughput.map {
+                ProviderThroughputSection(snapshot: $0, presentation: input.throughputPresentation)
+            },
             openAIAPIUsage: openAIAPIUsage,
             inlineUsageDashboard: inlineUsageDashboard,
             creditsText: creditsText,

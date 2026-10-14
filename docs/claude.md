@@ -48,6 +48,12 @@ Incomplete proxy records with an explicit null `stop_reason`, positive input, ze
 Usage source picker:
 - Preferences → Providers → Claude → Usage source (Auto/OAuth/Web/CLI).
 
+When an account-widget identity check or successful web enrichment returns an OAuth profile, its same-token email is
+retained for display even if the profile lacks the organization needed to verify widget ownership. A failed
+optional profile check leaves successful usage available. Ordinary OAuth refreshes still do not request a
+profile solely for display identity, so selecting OAuth alone does not guarantee an Account row. Organization
+UUIDs are ownership evidence, not organization display names.
+
 Admin API key setup:
 - Preferences → Providers → Claude → Admin API key, stored in `~/.codexbar/config.json`.
 - CLI/env: `printf '%s' "$ANTHROPIC_ADMIN_KEY" | codexbar config set-api-key --provider claude --stdin`.
@@ -287,7 +293,7 @@ the cookie import.
   - `GET https://claude.ai/api/account` → email + plan hints.
 - Outputs:
   - Session + weekly + model-specific percent used.
-  - A missing session measurement does not render as 100% remaining. Measured weekly and extra windows stay visible; when only a synthetic session placeholder exists, menus and plain CLI output report that limits are unavailable. Raw JSON retains the placeholder for diagnostics.
+  - A missing Web session stays absent instead of becoming a synthetic 0% session; measured weekly and extra windows stay visible. Older cached placeholders remain readable.
   - Daily Routines extra window when returned by the usage API.
   - Extra usage spend/limit (if enabled). Compact Overview keeps this section when no measured quota bars exist, including Enterprise accounts with unavailable limits.
   - Remaining Usage credits balance (if enabled). Custom menu bar layouts can show it with the **Balance** element
@@ -325,6 +331,21 @@ the cookie import.
 Enterprise spend details depend on the selected source. Auto stops at the first successful OAuth/CLI/Web result;
 it does not import a missing monthly spend cap from a different session. Select **Web API (cookies)** for
 browser-only billing details, and enable **Show credits and extra usage** to display them.
+
+## Extra usage rollover
+
+For Claude spend-only accounts, positive monthly caps use the shared usage-window presentation: one Meter bar,
+with Auto, Extra usage, and the card using the same cap percentage and reset. The card retains its spend/limit and
+prepaid-balance caption. Accounts with quota windows keep their separate Extra usage section, including in the
+menu-card-sections layout. Uncapped balances keep their compact Credits row; Admin API spend is unchanged.
+Extra usage still follows its existing visibility choice and the global optional-usage switch. Pace follows the
+existing pace setting, independently of redeemable Limit Reset Credits.
+
+Claude does not report the cap reset. CodexBar infers midnight UTC on the first of the next month from the cost
+observation, applying [Anthropic's documented spend-limit period](https://platform.claude.com/docs/en/manage-claude/spend-limits-api)
+to all Claude monthly caps. Reset text uses local time (November 1 UTC can appear as October 31 in the Americas);
+the metric tooltip identifies the inference. Shared calendar-month pace uses the actual 28–31-day month.
+Changing a cap changes the percentage, not its rollover. A stale observation does not advance into a new month.
 
 ## Cloud-session credits
 
