@@ -2,10 +2,22 @@
 
 ## 0.75.1 — Unreleased
 
+### Added
+
+- Providers: add Claude Platform for Console API credit balances, expiring subscription and purchased grants, and optional monthly spend, using its signed-in browser session (#4510). Thanks @mjaverto!
+- About: show bundled open-source acknowledgements and bundle SwiftPM and vendored dependency notices with the app, widget, CLI, and Linux desktop (#4483). Thanks @elijahfriedman!
+
+- Menu bar: add optional Large text and monospaced digits to custom layouts, preserving existing sizes and older-build layout compatibility (#4455). Thanks @deinspanjer!
+
+### Changed
+
+- CLI: fetch usage from up to three providers concurrently while preserving output order, isolated failures, and refreshed credentials (#4501). Thanks @djbclark!
+
 ### Fixed
 
 - Plugins: release temporary objects between QuickJS refreshes and free retired JavaScriptCore contexts and completed runtimes (#4512, #4486).
 - Claude: retain account emails from existing OAuth profile checks, even when the profile lacks organization details (#4493).
+- Droid: import sessions from Firefox Beta, Developer Edition, and Nightly, and continue past unavailable browser stores (#4461). Thanks @vincent-peng!
 
 ## 0.75.0 — 2026-10-13
 
@@ -41,8 +53,15 @@
 
 ### Fixed
 
-- Claude: open the Platform usage page instead of billing for the default Usage Dashboard action.
-
+- Usage & Spend: keep native Codex detail tabs and complete snapshots during bounded refreshes, including when OpenCodex replaces totals (#4467). Thanks @Yuxin-Qiao!
+- CLI costs: show the partial-history notice in project reports, including empty project lists (#4472). Thanks @Shenrui-Ma!
+- Usage & Spend: retain every saved Codex account's result when refreshing more than three accounts (#4466). Thanks @Yuxin-Qiao!
+- Browser cookie imports: explain denied Files & Folders access instead of asking users who are already signed in to sign in again (#4482). Thanks @marklights54-byte!
+- Devin: use the official transparent hexagonal mark in the app, website, and CLI dashboard (#4458). Thanks @codertesla!
+- JetBrains AI: read current quota from newer JbaiQuota and Junie log records while preserving same-IDE freshness and XML fallback (#4457). Thanks @taihua!
+- Agent sessions: preserve macOS CLI sessions and their provider/source labels when prompts mention application paths (#4474). Thanks @Shenrui-Ma!
+- Claude: show spend-only monthly caps with one meter, calendar-month pace and inferred UTC rollover, preserving quota accounts' Extra usage section and visibility (#4480). Fixes #4381. Thanks @benjschiller!
+- OpenAI: stop counting audio tokens twice in Admin API token totals; `input_tokens`/`output_tokens` already include audio.
 - Menu bar: show a single leading provider icon at full size beside two text rows while preserving inline icons for merged providers and tinted layouts (#4454). Thanks @deinspanjer!
 - Menu cards: separate stale Claude usage notices from errors, render inline commands without backticks, align error copy controls, and clarify when Keychain access is disabled.
 - OpenCode Go: cache unchanged local history scans with bounded memory and discover permitted browser sessions in Auto before falling back to marked estimates (#4410, #4445). Thanks @JackHo12 and @djbclark!
