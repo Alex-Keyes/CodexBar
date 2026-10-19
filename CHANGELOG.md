@@ -4,7 +4,7 @@
 
 ### Fixed
 
-- Codex: open the Usage Dashboard on the overview tab to avoid incorrect redirects.
+- Codex: open the Usage Dashboard on the overview tab to avoid incorrect redirects (#4607). Thanks @Alex-Keyes!
 
 ## 0.77.0 — 2026-10-16
 
